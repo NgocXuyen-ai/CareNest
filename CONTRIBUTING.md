@@ -161,7 +161,7 @@ git push origin feature/ten-chuc-nang
 ##  5. Tạo Pull Request
 
 * Vào GitHub
-* Tạo Pull Request vào `main`
+* Tạo Pull Request vào `develop`
 
 ---
 
