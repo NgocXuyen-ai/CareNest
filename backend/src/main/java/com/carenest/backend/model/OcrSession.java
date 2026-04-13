@@ -1,5 +1,8 @@
 package com.carenest.backend.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,12 +24,13 @@ public class OcrSession {
     private Integer ocrId;
 
     @NotNull(message = "Profile không được để trống")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)
     private HealthProfile profile;
 
-    @Column(name = "request_id")
-    private Integer requestId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id")
+    private AiRequestLog requestLog;
 
     @Size(max = 255, message = "ImageUrl tối đa 255 ký tự")
     @Column(name = "image_url", length = 255)
@@ -44,4 +48,7 @@ public class OcrSession {
     @Size(max = 255, message = "Status tối đa 255 ký tự")
     @Column(name = "status", length = 255)
     private String status;
+
+    @OneToMany(mappedBy = "ocrSession")
+    private List<AiChatDetail> chatDetails = new ArrayList<>();
 }

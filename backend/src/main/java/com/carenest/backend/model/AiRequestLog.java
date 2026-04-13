@@ -12,6 +12,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "ai_request_log")
@@ -57,4 +59,10 @@ public class AiRequestLog {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "requestLog")
+    private List<AiChatDetail> chatDetails = new ArrayList<>();
+
+    @OneToMany(mappedBy = "requestLog")
+    private List<OcrSession> ocrSessions = new ArrayList<>();
 }

@@ -2,39 +2,102 @@ package com.carenest.backend.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 
-import com.carenest.backend.Repository.UserRepository;
+import com.carenest.backend.dto.LoginRequest;
+import com.carenest.backend.dto.RegisterRequest;
+import com.carenest.backend.helper.ApiResponse;
 import com.carenest.backend.model.User;
+import com.carenest.backend.security.jwt.JwtUtil;
+import com.carenest.backend.service.UserService;
 
 import jakarta.validation.Valid;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 
 @RestController
 public class UserController {
-    private final UserRepository userRepository;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
+    private final AuthenticationManager authenticationManager;
 
-    public UserController(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-
-    @PostMapping("/users")
-    @ResponseStatus(HttpStatus.CREATED)
-    public User createUser(@Valid @RequestBody User user) {
-        return userRepository.save(user);
+    public UserController(UserService userService, JwtUtil jwtUtil, AuthenticationManager authenticationManager) {
+        this.userService = userService;
+        this.jwtUtil = jwtUtil;
+        this.authenticationManager = authenticationManager;
     }
     
     @GetMapping("/users")
-    @ResponseStatus(HttpStatus.OK)
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
+        List<User> userList = this.userService.getAllUsers();
+        return ApiResponse.success(userList);
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<User>> register(@Valid @RequestBody RegisterRequest request) {
+
+        User user = userService.register(request);
+
+        return ApiResponse.created(user);
+    }
+    
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody LoginRequest request) {
+        try {
+            // 1. Authenticate
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+
+            // 2. Lấy user từ DB
+            User user = userService.findUserByEmail(request.getEmail());
+
+            // 3. Tạo token
+            String token = jwtUtil.generateToken(user.getEmail());
+
+            // 4. Build data trả về
+            Map<String, Object> data = new HashMap<>();
+            data.put("userId", user.getUserId());
+            data.put("email", user.getEmail());
+            data.put("token", token);
+
+            // 5. Return success theo ApiResponse
+            return ApiResponse.success(data, "Đăng nhập thành công");
+
+        } catch (BadCredentialsException e) {
+            return ApiResponse.error(
+                    HttpStatus.UNAUTHORIZED,
+                    "Sai email hoặc mật khẩu",
+                    "AUTH_001"
+            );
+        } catch (UsernameNotFoundException e) {
+            return ApiResponse.error(
+                    HttpStatus.NOT_FOUND,
+                    "User không tồn tại",
+                    "AUTH_002"
+            );
+        } catch (Exception e) {
+            return ApiResponse.error(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Lỗi server",
+                    "SYS_500"
+            );
+        }
+    }
+    
     
 }

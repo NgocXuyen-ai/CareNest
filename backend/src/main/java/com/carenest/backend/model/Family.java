@@ -31,8 +31,8 @@ public class Family {
     private String name;
 
     @NotNull(message = "Owner không được để trống")
-    @ManyToOne
-    @JoinColumn(name = "owner", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "owner", nullable = false, unique = true)
     private User owner;
 
     @Column(name = "created_at")

@@ -47,9 +47,6 @@ public class User {
     @OneToMany(mappedBy = "receiver")
     private List<FamilyInvitation> familyInvitations = new ArrayList<>();
 
-    @OneToMany(mappedBy = "owner")
-    private List<Family> ownedFamilies = new ArrayList<>();
-
     @OneToMany(mappedBy = "user")
     private List<AiConversation> aiConversations = new ArrayList<>();
 }

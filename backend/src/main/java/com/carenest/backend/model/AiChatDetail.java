@@ -24,15 +24,17 @@ public class AiChatDetail {
     private Integer messageId;
 
     @NotNull(message = "Conversation không được để trống")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conversation_id", nullable = false)
     private AiConversation conversation;
 
-    @Column(name = "request_id")
-    private Integer requestId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id")
+    private AiRequestLog requestLog;
 
-    @Column(name = "ocr_id")
-    private Integer ocrId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ocr_id")
+    private OcrSession ocrSession;
 
     @NotBlank(message = "Sender không được để trống")
     @Size(max = 255, message = "Sender tối đa 255 ký tự")
