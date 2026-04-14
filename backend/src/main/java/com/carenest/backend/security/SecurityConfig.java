@@ -41,12 +41,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   AuthenticationProvider authenticationProvider) throws Exception {
+            AuthenticationProvider authenticationProvider) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .authenticationProvider(authenticationProvider)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/register", "/forgot-password", "/reset-password", "/change-password").permitAll()
+                .requestMatchers("/login", "/register", "/forgot-password", "/reset-password", 
+                "/change-password", "/users", "/verify-email").permitAll()
                 .anyRequest().authenticated()
             );
 
