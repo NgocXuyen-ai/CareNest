@@ -47,4 +47,10 @@ public class JwtUtil {
 
         return expiration.before(new Date());
     }
+
+    //
+    public boolean isTokenValid(String token, String email) {
+        String extractedEmail = extractEmail(token);
+        return extractedEmail.equals(email) && !isTokenExpired(token);
+    }
 }

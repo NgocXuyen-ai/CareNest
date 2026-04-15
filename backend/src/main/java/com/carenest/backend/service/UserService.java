@@ -1,49 +1,57 @@
 package com.carenest.backend.service;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.carenest.backend.dto.RegisterRequest;
+import com.carenest.backend.dto.auth.ChangePasswordRequest;
 import com.carenest.backend.model.User;
-import com.carenest.backend.Repository.UserRepository;
+import com.carenest.backend.repository.UserRepository;
+import com.carenest.backend.security.jwt.JwtUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class UserService {
-    public final UserRepository userRepository;
-    public final PasswordEncoder passwordEncoder;
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder){
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil){
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
     }
 
-    public User register(RegisterRequest request){
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Password không khớp");
+    public void changePassword(HttpServletRequest request, ChangePasswordRequest req) {
+        User currentUser = getCurrentUser(request);
+
+        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
+            throw new RuntimeException("Mật khẩu xác nhận không khớp");
         }
-    
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại");
+
+        if (!passwordEncoder.matches(req.getOldPassword(), currentUser.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu cũ không đúng");
         }
-    
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-    
-        return userRepository.save(user);
+
+        if (passwordEncoder.matches(req.getNewPassword(), currentUser.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu mới không được trùng mật khẩu cũ");
+        }
+
+        currentUser.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        userRepository.save(currentUser);
     }
 
-    public List<User> getAllUsers(){
-        List<User> userList = this.userRepository.findAll();
-        return userList;
-    }
+    private User getCurrentUser(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
 
-    public User findUserByEmail(String email){
-        Optional<User> userOpt = this.userRepository.findByEmail(email);
-        if (!userOpt.isPresent())
-			return null;
-		return userOpt.get();
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Thiếu token đăng nhập");
+        }
+
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
     }
 }

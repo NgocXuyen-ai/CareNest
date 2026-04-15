@@ -1,4 +1,4 @@
-package com.carenest.backend.Repository;
+package com.carenest.backend.repository;
 
 import java.util.Optional;
 

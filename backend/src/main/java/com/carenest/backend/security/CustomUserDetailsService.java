@@ -7,25 +7,21 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.carenest.backend.service.UserService;
+import com.carenest.backend.service.AuthService;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserService userService;
+    private final AuthService authService;
 
-    public CustomUserDetailsService(UserService userService) {
-        this.userService = userService;
+    public CustomUserDetailsService(AuthService authService) {
+        this.authService = authService;
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        com.carenest.backend.model.User myUser = userService.findUserByEmail(username);
-
-        if (myUser == null) {
-            throw new UsernameNotFoundException("User not found");
-        }
-
+        com.carenest.backend.model.User myUser = authService.findUserByEmail(username);
+        
         return new org.springframework.security.core.userdetails.User(
                 myUser.getEmail(),
                 myUser.getPasswordHash(),
