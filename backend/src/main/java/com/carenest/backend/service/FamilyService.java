@@ -22,11 +22,11 @@ import com.carenest.backend.model.HealthProfile;
 import com.carenest.backend.model.User;
 import com.carenest.backend.model.enums.FamilyRole;
 import com.carenest.backend.model.enums.InvitationStatus;
-import com.carenest.backend.repository.FamilyInvitationRepository;
-import com.carenest.backend.repository.FamilyRelationshipRepository;
-import com.carenest.backend.repository.FamilyRepository;
-import com.carenest.backend.repository.HealthProfileRepository;
-import com.carenest.backend.repository.UserRepository;
+import com.carenest.backend.Repository.FamilyInvitationRepository;
+import com.carenest.backend.Repository.FamilyRelationshipRepository;
+import com.carenest.backend.Repository.FamilyRepository;
+import com.carenest.backend.Repository.HealthProfileRepository;
+import com.carenest.backend.Repository.UserRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 
