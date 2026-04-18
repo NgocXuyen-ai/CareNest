@@ -5,10 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
@@ -49,8 +46,8 @@ public class Vaccination {
     @Column(name = "clinic_name", length = 255)
     private String clinicName;
 
-    @NotBlank(message = "Status không được để trống")
-    @Size(max = 50, message = "Status tối đa 50 ký tự")
+    @NotNull(message = "Status không được để trống")
+    // Bỏ @Enumerated, để String bình thường
     @Column(name = "status", length = 50)
-    private String status;
+    private String status; 
 }

@@ -22,6 +22,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Integer userId;
 
     @NotBlank(message = "Email không được để trống")
@@ -31,6 +32,9 @@ public class User {
 
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
