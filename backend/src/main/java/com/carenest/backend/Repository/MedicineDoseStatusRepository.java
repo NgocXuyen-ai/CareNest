@@ -6,9 +6,11 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import com.carenest.backend.model.MedicineDoseStatus;
 
+@Repository
 public interface MedicineDoseStatusRepository extends JpaRepository<MedicineDoseStatus, Integer> {
 
     Optional<MedicineDoseStatus> findBySchedule_ScheduleIdAndDoseDateAndSession(
@@ -33,4 +35,5 @@ public interface MedicineDoseStatusRepository extends JpaRepository<MedicineDose
     """)
     List<MedicineDoseStatus> findDailyDoseStatuses(Integer profileId, LocalDate doseDate);
     void deleteBySchedule_ScheduleId(Integer scheduleId);
+    List<MedicineDoseStatus> findByDoseDateAndIsTakenFalse(LocalDate doseDate);
 }
