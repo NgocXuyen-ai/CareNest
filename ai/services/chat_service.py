@@ -506,7 +506,7 @@ def _node_context_answer_lane(state: ChatGraphState) -> ChatGraphState:
         logger.warning("Context lane failed: %s", exc)
         reply = ""
     if not reply:
-        reply = "Minh chua du thong tin de tra loi. Ban cho minh them chi tiet nhe."
+        reply = "Mình chưa đủ thông tin để trả lời. Bạn cho mình thêm thông tin chi tiết nhé."
 
     guard_prompt = build_context_answer_guard_prompt(
         message=request.message,
@@ -514,9 +514,14 @@ def _node_context_answer_lane(state: ChatGraphState) -> ChatGraphState:
         context=request.context,
     )
     guarded = _invoke_json_prompt(guard_prompt)
+    action = str(guarded.get("action", "keep_answer")).strip().lower()
     guarded_reply = guarded.get("final_reply")
     if isinstance(guarded_reply, str) and guarded_reply.strip():
         reply = guarded_reply.strip()
+
+    if action == "fallback_to_sql":
+        logger.info("context_answer_guard requested fallback_to_sql for message=%s", request.message)
+        return _node_text_to_sql_lane(state)
 
     profiles = request.context.get("profiles")
     data = profiles if isinstance(profiles, list) else None

@@ -609,6 +609,7 @@ def build_context_answer_guard_prompt(
 Hãy kiểm tra xem bản nháp có bỏ sót dữ liệu đã có trong context hay không, rồi chỉ trả JSON:
 {{
   "approved": true,
+  "action": "keep_answer|fallback_to_sql",
   "final_reply": "string",
   "reason": "lý do ngắn"
 }}
@@ -616,6 +617,8 @@ Hãy kiểm tra xem bản nháp có bỏ sót dữ liệu đã có trong context
 Quy tắc:
 - Nếu context đã có dữ liệu gia đình hoặc danh sách hồ sơ, không được trả lời theo kiểu "không có thông tin" nếu vẫn có thể trả lời hữu ích.
 - Với câu hỏi về gia đình/thành viên, ưu tiên dùng family.members; nếu family.members trống nhưng profiles có dữ liệu liên quan, có thể trả lời từ profiles.
+- Nếu context chưa đủ nhưng câu hỏi rõ ràng thuộc nhóm dữ liệu có thể truy từ schema SQL, đặt action=fallback_to_sql.
+- Chỉ giữ action=keep_answer khi bản nháp đã hữu ích và bám chắc vào context.
 - Không bịa thông tin ngoài context.
 - Trả lời bằng tiếng Việt có dấu, ngắn gọn, rõ ràng.
 
