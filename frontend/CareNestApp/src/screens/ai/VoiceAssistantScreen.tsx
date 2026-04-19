@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -9,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { CARENEST_LOGO_HOUSE } from '../../assets/branding';
 import Icon from '../../components/common/Icon';
 import { chatAi } from '../../api/ai';
 import { useFamily } from '../../context/FamilyContext';
@@ -87,7 +89,7 @@ export default function VoiceAssistantScreen() {
           <View style={styles.aiCard}>
             <View style={styles.aiHeader}>
               <View style={styles.aiAvatar}>
-                <Icon name="smart_toy" size={20} color="#fff" />
+                <Image source={CARENEST_LOGO_HOUSE} style={styles.aiAvatarIcon} resizeMode="contain" />
               </View>
               <Text style={styles.aiName}>AI Care Assistant</Text>
             </View>
@@ -154,10 +156,10 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1a73e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  aiAvatarIcon: { width: 20, height: 20 },
   aiName: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '700' },
   aiText: { color: 'rgba(255,255,255,0.85)', fontSize: 16, lineHeight: 24, fontFamily: 'Inter' },
 });

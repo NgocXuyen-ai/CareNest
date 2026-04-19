@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   View,
   Text,
   TouchableOpacity,
@@ -10,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { TOP_BAR_HEIGHT } from '../../utils/constants';
+import { CARENEST_LOGO_HOUSE } from '../../assets/branding';
 import Avatar from '../common/Avatar';
 import Icon from '../common/Icon';
 import NotificationBell from '../common/NotificationBell';
@@ -40,11 +42,12 @@ export default function TopAppBar({
   if (variant === 'home') {
     return (
       <View style={[styles.bar, styles.homeBar, { paddingTop: insets.top || 12, height: barHeight }]}>
-        <View style={styles.homeLeft}>
-          <Avatar uri={avatarUri} name={userName} size="sm" bordered />
+        <View style={styles.brandLeft}>
+          <Image source={CARENEST_LOGO_HOUSE} style={styles.brandGlyph} resizeMode="contain" />
           <Text style={styles.logoText}>CareNest</Text>
         </View>
         <View style={styles.homeRight}>
+          <Avatar uri={avatarUri} name={userName} size="sm" bordered />
           <NotificationBell iconColor={colors.onSurfaceVariant} hasNotification={notificationCount > 0} />
           {rightAction}
         </View>
@@ -60,7 +63,7 @@ export default function TopAppBar({
         </TouchableOpacity>
         <View style={styles.chatTitle}>
           <View style={styles.chatAvatarWrap}>
-            <Icon name="smart_toy" size={22} color="#fff" />
+            <Image source={CARENEST_LOGO_HOUSE} style={styles.chatBrandIcon} resizeMode="contain" />
           </View>
           <View>
             <Text style={styles.chatName}>CareNest AI</Text>
@@ -102,8 +105,12 @@ const styles = StyleSheet.create({
   homeBar: { justifyContent: 'space-between' },
   detailBar: { justifyContent: 'space-between', alignItems: 'center' },
   chatBar: { alignItems: 'center', gap: 10 },
-  homeLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  brandLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   homeRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandGlyph: {
+    width: 22,
+    height: 22,
+  },
   logoText: {
     fontSize: 20,
     fontFamily: 'Manrope',
@@ -148,9 +155,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chatBrandIcon: {
+    width: 22,
+    height: 22,
   },
   chatTitle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   chatName: {

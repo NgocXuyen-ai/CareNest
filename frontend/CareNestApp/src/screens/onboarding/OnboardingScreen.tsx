@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
+  Image,
   View,
   Text,
   FlatList,
@@ -56,7 +57,7 @@ export default function OnboardingScreen() {
           <View style={[styles.slide, { width }]}>
             <View style={styles.imageContainer}>
               <View style={styles.imagePlaceholder}>
-                <Text style={styles.imagePlaceholderIcon}>🏥</Text>
+                <Image source={item.imageSource} style={styles.onboardingImage} resizeMode="contain" />
               </View>
             </View>
             <Text style={styles.slideTitle}>{item.title}</Text>
@@ -118,12 +119,13 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: 200,
     height: 200,
-    borderRadius: 100,
+    borderRadius: 24,
     backgroundColor: colors.primaryFixed,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 14,
   },
-  imagePlaceholderIcon: { fontSize: 80 },
+  onboardingImage: { width: '100%', height: '100%' },
   slideTitle: {
     fontSize: 28,
     fontFamily: 'Manrope',

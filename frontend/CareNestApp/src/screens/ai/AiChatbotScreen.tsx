@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Markdown from 'react-native-markdown-display';
 import { colors } from '../../theme/colors';
+import { CARENEST_LOGO_HOUSE } from '../../assets/branding';
 import { chatAi } from '../../api/ai';
 import { useFamily } from '../../context/FamilyContext';
 import { useAuth } from '../../context/AuthContext';
@@ -45,7 +47,7 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
     <View style={[styles.messageRow, isAssistant ? styles.rowAI : styles.rowUser]}>
       {isAssistant ? (
         <View style={styles.aiAvatarSmall}>
-          <MaterialCommunityIcons name="robot" size={16} color="#fff" />
+          <Image source={CARENEST_LOGO_HOUSE} style={styles.aiAvatarIconSmall} resizeMode="contain" />
         </View>
       ) : null}
       <View style={[styles.bubble, isAssistant ? styles.bubbleAI : styles.bubbleUser]}>
@@ -137,7 +139,7 @@ export default function AiChatbotScreen() {
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <View style={styles.avatarCircle}>
-              <MaterialCommunityIcons name="robot" size={24} color="#fff" />
+              <Image source={CARENEST_LOGO_HOUSE} style={styles.aiAvatarIconLarge} resizeMode="contain" />
             </View>
             <View>
               <Text style={styles.headerTitle}>CareNest AI</Text>
@@ -170,7 +172,7 @@ export default function AiChatbotScreen() {
           removeClippedSubviews={Platform.OS === 'android'}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <MaterialCommunityIcons name="robot-outline" size={54} color="#94a3b8" />
+              <Image source={CARENEST_LOGO_HOUSE} style={styles.emptyBrandIcon} resizeMode="contain" />
               <Text style={styles.emptyTitle}>Hỏi CareNest AI</Text>
               <Text style={styles.emptyText}>
                 Bạn có thể hỏi về thuốc hôm nay, lịch hẹn sắp tới, tiêm chủng hoặc thông tin
@@ -182,7 +184,7 @@ export default function AiChatbotScreen() {
             isTyping ? (
               <View style={[styles.messageRow, styles.rowAI]}>
                 <View style={styles.aiAvatarSmall}>
-                  <MaterialCommunityIcons name="robot" size={16} color="#fff" />
+                  <Image source={CARENEST_LOGO_HOUSE} style={styles.aiAvatarIconSmall} resizeMode="contain" />
                 </View>
                 <View style={[styles.bubble, styles.bubbleAI]}>
                   <Text style={styles.typingDots}>• • •</Text>
@@ -268,10 +270,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1a73e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  aiAvatarIconLarge: { width: 26, height: 26 },
   headerTitle: {
     fontSize: 18,
     fontFamily: 'Manrope',
@@ -298,6 +300,7 @@ const styles = StyleSheet.create({
   chatArea: { flex: 1, backgroundColor: '#fff' },
   chatContent: { padding: 16, paddingBottom: 32 },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 56, gap: 10 },
+  emptyBrandIcon: { width: 54, height: 54, opacity: 0.75 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
   emptyText: { fontSize: 14, color: '#64748b', textAlign: 'center', lineHeight: 22 },
   messageRow: { marginBottom: 24, position: 'relative' },
@@ -310,10 +313,10 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#004a78',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  aiAvatarIconSmall: { width: 16, height: 16 },
   bubble: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 20, maxWidth: '85%' },
   bubbleAI: {
     backgroundColor: '#f8fafc',

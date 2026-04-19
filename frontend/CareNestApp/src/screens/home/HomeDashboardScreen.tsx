@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { shadows } from '../../theme/spacing';
 import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
+import { CARENEST_LOGO_HOUSE } from '../../assets/branding';
 import Icon from '../../components/common/Icon';
 import Avatar from '../../components/common/Avatar';
 import type { HomeStackParamList, MainTabParamList } from '../../navigation/navigationTypes';
@@ -248,10 +250,11 @@ export default function HomeDashboardScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerLeft}>
-          <Avatar uri={user?.avatarUrl} name={user?.fullName || 'CareNest'} size="sm" bordered />
+        <View style={styles.brandLeft}>
+          <Image source={CARENEST_LOGO_HOUSE} style={styles.brandGlyph} resizeMode="contain" />
           <Text style={styles.logoText}>CareNest</Text>
         </View>
+        <Avatar uri={user?.avatarUrl} name={user?.fullName || 'CareNest'} size="sm" bordered />
       </View>
 
       <ScrollView
@@ -459,7 +462,7 @@ export default function HomeDashboardScreen() {
         <View style={[styles.aiAdvisorCard, { backgroundColor: '#E1F5FE' }]}>
           <View style={styles.aiHeader}>
             <View style={styles.aiAvatar}>
-              <Icon name="smart_toy" size={20} color="#fff" />
+              <Image source={CARENEST_LOGO_HOUSE} style={styles.aiAvatarIcon} resizeMode="contain" />
             </View>
             <Text style={styles.aiLabel}>AI CỐ VẤN</Text>
           </View>
@@ -483,7 +486,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 15,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  brandLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  brandGlyph: { width: 22, height: 22 },
   logoText: {
     fontSize: 22,
     fontFamily: 'Manrope',
@@ -678,6 +682,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  aiAvatarIcon: { width: 20, height: 20 },
   aiLabel: {
     fontSize: 12,
     fontFamily: 'Inter',
