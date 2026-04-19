@@ -69,22 +69,24 @@ export default function Emergency({
       contentContainerStyle={styles.scrollContent}
     >
       <View style={styles.sosContainer}>
-        <Animated.View
-          style={[
-            styles.pulseCircle,
-            { transform: [{ scale: pulseAnim }], opacity: 0.3 },
-          ]}
-        />
-        <TouchableOpacity
-          style={styles.sosButton}
-          activeOpacity={0.8}
-          onPress={() => void callNumber('115')}
-        >
-          <View style={styles.sosInner}>
-            <Text style={styles.sosText}>SOS</Text>
-            <Text style={styles.sosSubText}>GỌI 115</Text>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.sosButtonWrap}>
+          <Animated.View
+            style={[
+              styles.pulseCircle,
+              { transform: [{ scale: pulseAnim }], opacity: 0.3 },
+            ]}
+          />
+          <TouchableOpacity
+            style={styles.sosButton}
+            activeOpacity={0.8}
+            onPress={() => void callNumber('115')}
+          >
+            <View style={styles.sosInner}>
+              <Text style={styles.sosText}>SOS</Text>
+              <Text style={styles.sosSubText}>GỌI 115</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.sosHint}>Nhấn để gọi cấp cứu ngay lập tức</Text>
       </View>
 
@@ -203,15 +205,26 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 40 },
   sosContainer: {
     alignItems: 'center',
-    paddingVertical: 44,
+    paddingTop: 36,
+    paddingBottom: 40,
     backgroundColor: '#FFF1F2',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
+    overflow: 'hidden',
     marginBottom: 30,
+  },
+  sosButtonWrap: {
+    width: 150,
+    height: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pulseCircle: {
     position: 'absolute',
-    top: 44,
+    top: 5,
+    left: 5,
     width: 140,
     height: 140,
     borderRadius: 70,

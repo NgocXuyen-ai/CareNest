@@ -143,7 +143,11 @@ export default function MedicineCabinetScreen() {
           </View>
         </View>
       </ScrollView>
-      <FAB iconName="add" onPress={() => navigation.navigate('AddMedicineToCabinet', {})} />
+      <FAB
+        iconName="add"
+        onPress={() => navigation.navigate('AddMedicineToCabinet', {})}
+        bottomOffset={BOTTOM_NAV_HEIGHT - 55}
+      />
     </View>
   );
 }

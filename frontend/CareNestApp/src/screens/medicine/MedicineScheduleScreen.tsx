@@ -153,7 +153,11 @@ export default function MedicineScheduleScreen() {
           </View>
         ) : null}
       </ScrollView>
-      <FAB iconName="add" onPress={() => navigation.navigate('AddMedicineSchedule', {})} />
+      <FAB
+        iconName="add"
+        onPress={() => navigation.navigate('AddMedicineSchedule', {})}
+        bottomOffset={BOTTOM_NAV_HEIGHT - 55}
+      />
     </View>
   );
 }

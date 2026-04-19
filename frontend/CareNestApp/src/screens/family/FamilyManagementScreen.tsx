@@ -18,6 +18,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
+import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
 import { useFamily } from '../../context/FamilyContext';
 import { useAuth } from '../../context/AuthContext';
 import FAB from '../../components/common/FAB';
@@ -814,7 +815,13 @@ export default function FamilyManagementScreen() {
         </View>
       </ScrollView>
 
-      {isOwner ? <FAB onPress={() => void handleOpenAddMemberModal()} iconName="add" /> : null}
+      {isOwner ? (
+        <FAB
+          onPress={() => void handleOpenAddMemberModal()}
+          iconName="add"
+          bottomOffset={BOTTOM_NAV_HEIGHT - 55}
+        />
+      ) : null}
     </View>
   );
 
@@ -868,6 +875,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   centerContainer: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
   heroCircle: {

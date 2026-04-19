@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -9,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import Icon from './Icon';
+import { colors } from '../../theme/colors';
 
 type Option = {
   value: string;
@@ -36,16 +38,23 @@ export default function SelectField({
 }: SelectFieldProps) {
   const [visible, setVisible] = useState(false);
 
+  const handleOpenSelect = () => {
+    if (disabled) {
+      Alert.alert('Chế độ xem', 'Nhấn Sửa để bật chỉnh sửa và chọn lại thông tin.');
+      return;
+    }
+    setVisible(true);
+  };
+
   return (
     <>
       <TouchableOpacity
         style={[styles.inputContainer, disabled && styles.inputContainerDisabled]}
-        onPress={() => setVisible(true)}
-        activeOpacity={disabled ? 1 : 0.85}
-        disabled={disabled}
+        onPress={handleOpenSelect}
+        activeOpacity={0.85}
       >
         <View style={styles.inputIconWrap}>
-          <Icon name={icon} size={20} color="#3B82F6" />
+          <Icon name={icon} size={20} color={colors.primary} />
         </View>
         <View style={styles.inputContent}>
           <Text style={styles.inputLabel}>{label}</Text>

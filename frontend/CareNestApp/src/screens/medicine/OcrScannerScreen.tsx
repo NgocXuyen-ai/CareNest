@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import {
   Alert,
+  PermissionsAndroid,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { Permission } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { launchCamera, launchImageLibrary, type Asset } from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary, type Asset, type ImagePickerResponse } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/spacing';
@@ -41,6 +44,93 @@ export default function OcrScannerScreen() {
   const [clinicName, setClinicName] = useState('');
   const [doctorName, setDoctorName] = useState('');
   const [prescriptionDate, setPrescriptionDate] = useState('');
+
+  const ensureAndroidPermission = async (
+    permission: Permission,
+    title: string,
+    message: string,
+  ): Promise<boolean> => {
+    if (Platform.OS !== 'android') {
+      return true;
+    }
+
+    const alreadyGranted = await PermissionsAndroid.check(permission);
+    if (alreadyGranted) {
+      return true;
+    }
+
+    const granted = await PermissionsAndroid.request(permission, {
+      title,
+      message,
+      buttonPositive: 'Cho phép',
+      buttonNegative: 'Từ chối',
+      buttonNeutral: 'Để sau',
+    });
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  };
+
+  const ensureCameraPermission = async (): Promise<boolean> => {
+    return ensureAndroidPermission(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      'Cho phép dùng camera',
+      'CareNest cần quyền camera để chụp toa thuốc.',
+    );
+  };
+
+  const ensureLibraryPermission = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') {
+      return true;
+    }
+
+    const permissions = PermissionsAndroid.PERMISSIONS as Record<string, string | undefined>;
+    const permission =
+      Platform.Version >= 33
+        ? permissions.READ_MEDIA_IMAGES
+        : permissions.READ_EXTERNAL_STORAGE;
+
+    if (!permission) {
+      return true;
+    }
+
+    return ensureAndroidPermission(
+      permission as Permission,
+      'Cho phép truy cập ảnh',
+      'CareNest cần quyền truy cập ảnh để quét toa thuốc từ thư viện.',
+    );
+  };
+
+  const getAssetFromPickerResponse = (
+    response: ImagePickerResponse,
+    sourceName: 'camera' | 'thư viện',
+  ): Asset | null => {
+    if (response.didCancel) {
+      return null;
+    }
+
+    if (response.errorCode) {
+      Alert.alert(
+        `Không thể mở ${sourceName}`,
+        response.errorMessage || 'Vui lòng kiểm tra quyền truy cập và thử lại.',
+      );
+      return null;
+    }
+
+    const asset = response.assets?.[0];
+    if (!asset) {
+      Alert.alert('Không có ảnh', `Chưa nhận được ảnh từ ${sourceName}.`);
+      return null;
+    }
+
+    if (!asset.base64) {
+      Alert.alert(
+        'Không thể đọc ảnh',
+        'Ảnh chưa có dữ liệu hợp lệ để OCR. Vui lòng thử ảnh khác.',
+      );
+      return null;
+    }
+
+    return asset;
+  };
 
   const activeProfileId = selectedProfileId || (user?.profileId ? Number(user.profileId) : null);
 
@@ -82,23 +172,43 @@ export default function OcrScannerScreen() {
   }
 
   async function handleScanFromLibrary() {
+    const granted = await ensureLibraryPermission();
+    if (!granted) {
+      Alert.alert('Thiếu quyền truy cập ảnh', 'Vui lòng cấp quyền để chọn ảnh từ thư viện.');
+      return;
+    }
+
     const result = await launchImageLibrary({
       mediaType: 'photo',
       includeBase64: true,
       quality: 0.8,
       selectionLimit: 1,
     });
-    await processSelectedImage(result.assets?.[0]);
+    const asset = getAssetFromPickerResponse(result, 'thư viện');
+    if (!asset) {
+      return;
+    }
+    await processSelectedImage(asset);
   }
 
   async function handleScanFromCamera() {
+    const granted = await ensureCameraPermission();
+    if (!granted) {
+      Alert.alert('Thiếu quyền camera', 'Vui lòng cấp quyền camera để chụp toa thuốc.');
+      return;
+    }
+
     const result = await launchCamera({
       mediaType: 'photo',
       includeBase64: true,
       quality: 0.8,
       saveToPhotos: false,
     });
-    await processSelectedImage(result.assets?.[0]);
+    const asset = getAssetFromPickerResponse(result, 'camera');
+    if (!asset) {
+      return;
+    }
+    await processSelectedImage(asset);
   }
 
   async function handleConfirm() {

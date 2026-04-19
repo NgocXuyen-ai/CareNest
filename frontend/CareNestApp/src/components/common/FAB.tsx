@@ -5,17 +5,28 @@ import { shadows } from '../../theme/spacing';
 import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
 import Icon from './Icon';
 
-const FAB_BOTTOM_OFFSET = Math.round(BOTTOM_NAV_HEIGHT / 2.4);
+const FAB_BOTTOM_OFFSET = BOTTOM_NAV_HEIGHT;
 
 interface FABProps {
   iconName?: string;
   onPress: () => void;
   style?: ViewStyle;
+  bottomOffset?: number;
 }
 
-export default function FAB({ iconName = 'add', onPress, style }: FABProps) {
+export default function FAB({
+  iconName = 'add',
+  onPress,
+  style,
+  bottomOffset = FAB_BOTTOM_OFFSET,
+}: FABProps) {
   return (
-    <TouchableOpacity style={[styles.fab, style]} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={[styles.fab, { bottom: bottomOffset }, style]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      hitSlop={{ top: 10, left: 10, right: 10, bottom: 14 }}
+    >
       <Icon name={iconName} size={28} color={colors.onPrimary} />
     </TouchableOpacity>
   );
