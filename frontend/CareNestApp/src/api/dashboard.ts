@@ -2,6 +2,7 @@ import { apiGet } from './client';
 
 export interface DashboardPayload {
   generatedAt: string;
+  scopeType: 'PROFILE' | 'FAMILY';
   family?: {
     familyId: number;
     familyName: string;
@@ -15,8 +16,8 @@ export interface DashboardPayload {
       healthStatus?: string | null;
     }>;
   } | null;
-  selectedProfileId: number;
-  selectedProfile?: Record<string, unknown>;
+  selectedProfileId: number | null;
+  selectedProfile?: Record<string, unknown> | null;
   profiles: Array<Record<string, unknown>>;
   profileContexts: Array<Record<string, unknown>>;
   medicineCabinet: Array<Record<string, unknown>>;

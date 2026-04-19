@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Dimensions,
   StyleSheet,
-  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';

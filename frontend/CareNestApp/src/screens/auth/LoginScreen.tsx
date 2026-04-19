@@ -118,7 +118,11 @@ export default function LoginScreen() {
           </View>
 
           {/* Google button */}
-          <TouchableOpacity style={styles.googleBtn} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.googleBtn}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Chua ho tro', 'Dang nhap bang Google se duoc bo sung o phien ban sau.')}
+          >
             <Text style={styles.googleIcon}>G</Text>
             <Text style={styles.googleText}>Tiếp tục với Google</Text>
           </TouchableOpacity>

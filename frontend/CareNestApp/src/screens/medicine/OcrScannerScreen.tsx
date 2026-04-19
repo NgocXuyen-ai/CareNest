@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/spacing';
@@ -44,21 +44,13 @@ export default function OcrScannerScreen() {
 
   const activeProfileId = selectedProfileId || (user?.profileId ? Number(user.profileId) : null);
 
-  async function handleScan() {
+  async function processSelectedImage(base64?: string) {
     if (!activeProfileId) {
-      Alert.alert('Chưa có hồ sơ', 'Vui lòng tạo hoặc chọn hồ sơ sức khỏe trước khi quét toa thuốc.');
+      Alert.alert('Chua co ho so', 'Vui long tao hoac chon ho so suc khoe truoc khi quet toa thuoc.');
       return;
     }
 
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      includeBase64: true,
-      quality: 0.8,
-      selectionLimit: 1,
-    });
-
-    const asset = result.assets?.[0];
-    if (!asset?.base64) {
+    if (!base64) {
       return;
     }
 
@@ -66,7 +58,7 @@ export default function OcrScannerScreen() {
       setOcrState('scanning');
       const response = await submitOcr({
         profileId: activeProfileId,
-        imageBase64: asset.base64,
+        imageBase64: base64,
       });
 
       setOcrId(response.ocr_id || null);
@@ -75,7 +67,7 @@ export default function OcrScannerScreen() {
           name: item.name || '',
           dosage: item.dosage || '',
           frequency: item.frequency ? String(item.frequency) : '1',
-          duration: item.duration || '7 ngày',
+          duration: item.duration || '7 ngay',
           note: item.note || '',
         })),
       );
@@ -85,8 +77,30 @@ export default function OcrScannerScreen() {
       setOcrState('result');
     } catch (error) {
       setOcrState('idle');
-      Alert.alert('Không thể OCR', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+      Alert.alert('Khong the OCR', error instanceof Error ? error.message : 'Da co loi xay ra');
     }
+  }
+
+  async function handleCaptureFromCamera() {
+    const result = await launchCamera({
+      mediaType: 'photo',
+      includeBase64: true,
+      quality: 0.8,
+      saveToPhotos: false,
+    });
+
+    await processSelectedImage(result.assets?.[0]?.base64);
+  }
+
+  async function handlePickFromLibrary() {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      includeBase64: true,
+      quality: 0.8,
+      selectionLimit: 1,
+    });
+
+    await processSelectedImage(result.assets?.[0]?.base64);
   }
 
   async function handleConfirm() {
@@ -110,17 +124,17 @@ export default function OcrScannerScreen() {
           date: prescriptionDate,
         },
       });
-      Alert.alert('Đã nhập toa thuốc', 'Thông tin thuốc và lịch uống đã được thêm vào hệ thống.', [
+      Alert.alert('Da nhap toa thuoc', 'Thong tin thuoc va lich uong da duoc them vao he thong.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      Alert.alert('Không thể xác nhận OCR', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+      Alert.alert('Khong the xac nhan OCR', error instanceof Error ? error.message : 'Da co loi xay ra');
     }
   }
 
   return (
     <View style={styles.root}>
-      <TopAppBar variant="detail" title="Quét toa thuốc OCR" />
+      <TopAppBar variant="detail" title="Quet toa thuoc OCR" />
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
@@ -132,67 +146,73 @@ export default function OcrScannerScreen() {
           {ocrState === 'scanning' ? (
             <View style={styles.scanningOverlay}>
               <View style={styles.scanLine} />
-              <Text style={styles.scanningText}>Đang nhận diện toa thuốc...</Text>
+              <Text style={styles.scanningText}>Dang nhan dien toa thuoc...</Text>
             </View>
           ) : ocrState === 'result' ? (
             <View style={styles.resultPreview}>
               <Icon name="check_circle" size={48} color="#2E7D32" />
-              <Text style={styles.resultPreviewText}>Nhận diện thành công!</Text>
+              <Text style={styles.resultPreviewText}>Nhan dien thanh cong!</Text>
             </View>
           ) : (
             <View style={styles.idleOverlay}>
               <View style={styles.scanFrame} />
               <Icon name="document_scanner" size={40} color="rgba(255,255,255,0.7)" />
-              <Text style={styles.idleText}>Chọn ảnh toa thuốc để AI trích xuất</Text>
+              <Text style={styles.idleText}>Chup toa thuoc hoac chon anh de AI trich xuat</Text>
             </View>
           )}
         </View>
 
         {ocrState !== 'scanning' ? (
-          <TouchableOpacity style={styles.scanBtn} onPress={handleScan} activeOpacity={0.85}>
-            <Icon name="photo_library" size={22} color={colors.onPrimary} />
-            <Text style={styles.scanBtnText}>{ocrState === 'result' ? 'Quét lại ảnh khác' : 'Chọn ảnh toa thuốc'}</Text>
-          </TouchableOpacity>
+          <View style={styles.captureRow}>
+            <TouchableOpacity style={styles.scanBtn} onPress={() => void handleCaptureFromCamera()} activeOpacity={0.85}>
+              <Icon name="camera" size={22} color={colors.onPrimary} />
+              <Text style={styles.scanBtnText}>{ocrState === 'result' ? 'Chup lai toa thuoc' : 'Chup toa thuoc'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={() => void handlePickFromLibrary()} activeOpacity={0.85}>
+              <Icon name="image" size={20} color={colors.primary} />
+              <Text style={styles.secondaryBtnText}>Chon tu thu vien</Text>
+            </TouchableOpacity>
+          </View>
         ) : null}
 
         {ocrState === 'result' ? (
           <>
             <View style={styles.resultHeader}>
-              <Icon name="auto_awesome" size={18} color={colors.primary} />
-              <Text style={styles.resultHeaderText}>Kiểm tra và chỉnh sửa kết quả OCR trước khi lưu</Text>
+              <Icon name="smart_toy" size={18} color={colors.primary} />
+              <Text style={styles.resultHeaderText}>Kiem tra va chinh sua ket qua OCR truoc khi luu</Text>
             </View>
 
             <View style={[styles.card, shadows.sm]}>
-              <Input label="Phòng khám" value={clinicName} onChangeText={setClinicName} />
-              <Input label="Bác sĩ" value={doctorName} onChangeText={setDoctorName} />
-              <Input label="Ngày kê toa" value={prescriptionDate} onChangeText={setPrescriptionDate} />
+              <Input label="Phong kham" value={clinicName} onChangeText={setClinicName} />
+              <Input label="Bac si" value={doctorName} onChangeText={setDoctorName} />
+              <Input label="Ngay ke toa" value={prescriptionDate} onChangeText={setPrescriptionDate} />
 
               {medicines.map((medicine, index) => (
                 <View key={`${medicine.name}-${index}`} style={styles.medicineBlock}>
-                  <Text style={styles.medicineBlockTitle}>Thuốc {index + 1}</Text>
+                  <Text style={styles.medicineBlockTitle}>Thuoc {index + 1}</Text>
                   <Input
-                    label="Tên thuốc"
+                    label="Ten thuoc"
                     value={medicine.name}
                     onChangeText={value => setMedicines(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, name: value } : item))}
                   />
                   <Input
-                    label="Liều dùng"
+                    label="Lieu dung"
                     value={medicine.dosage}
                     onChangeText={value => setMedicines(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, dosage: value } : item))}
                   />
                   <Input
-                    label="Số lần/ngày"
+                    label="So lan/ngay"
                     value={medicine.frequency}
                     onChangeText={value => setMedicines(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, frequency: value } : item))}
                     keyboardType="numeric"
                   />
                   <Input
-                    label="Thời gian dùng"
+                    label="Thoi gian dung"
                     value={medicine.duration}
                     onChangeText={value => setMedicines(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, duration: value } : item))}
                   />
                   <Input
-                    label="Ghi chú"
+                    label="Ghi chu"
                     value={medicine.note}
                     onChangeText={value => setMedicines(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, note: value } : item))}
                   />
@@ -202,7 +222,7 @@ export default function OcrScannerScreen() {
 
             <TouchableOpacity style={styles.submitBtn} onPress={() => void handleConfirm()} activeOpacity={0.85}>
               <Icon name="check" size={20} color={colors.onPrimary} />
-              <Text style={styles.submitBtnText}>Xác nhận và lưu vào hệ thống</Text>
+              <Text style={styles.submitBtnText}>Xac nhan va luu vao he thong</Text>
             </TouchableOpacity>
           </>
         ) : null}
@@ -245,6 +265,7 @@ const styles = StyleSheet.create({
   scanningText: { fontSize: 14, fontFamily: 'Inter', fontWeight: '600', color: '#fff', marginTop: 100 },
   resultPreview: { alignItems: 'center', gap: 10 },
   resultPreviewText: { fontSize: 16, fontFamily: 'Manrope', fontWeight: '700', color: '#fff' },
+  captureRow: { gap: 10 },
   scanBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -260,6 +281,18 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   scanBtnText: { fontSize: 16, fontFamily: 'Inter', fontWeight: '700', color: colors.onPrimary },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    gap: 8,
+  },
+  secondaryBtnText: { fontSize: 14, fontFamily: 'Inter', fontWeight: '700', color: colors.primary },
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   resultHeaderText: { fontSize: 13, fontFamily: 'Inter', fontWeight: '600', color: colors.primary, flex: 1 },
   card: { backgroundColor: colors.surfaceContainerLowest, borderRadius: 16, padding: 16, gap: 12 },

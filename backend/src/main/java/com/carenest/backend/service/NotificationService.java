@@ -13,43 +13,43 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final ProfileAccessService profileAccessService;
 
-    public NotificationService(NotificationRepository notificationRepository){
+    public NotificationService(NotificationRepository notificationRepository,
+                               ProfileAccessService profileAccessService) {
         this.notificationRepository = notificationRepository;
+        this.profileAccessService = profileAccessService;
     }
 
-    public List<com.carenest.backend.dto.notification.NotificationResponse> getNotifications(Integer profileId, Boolean isRead) {
+    public List<NotificationResponse> getNotifications(Integer currentUserId, Integer profileId, Boolean isRead) {
+        profileAccessService.requireAccessibleProfile(currentUserId, profileId);
         Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
 
-        List<Notification> notifications;
-        if (isRead == null) {
-            notifications = notificationRepository.findByProfile_Profile(profileId, sort);
-        } else {
-            notifications = notificationRepository.findByProfile_ProfileAndIsRead(profileId, isRead, sort);
-        }
+        List<Notification> notifications = isRead == null
+                ? notificationRepository.findByProfile_Profile(profileId, sort)
+                : notificationRepository.findByProfile_ProfileAndIsRead(profileId, isRead, sort);
 
-        return notifications.stream()
-                .map(this::mapToResponse)
-                .toList();
+        return notifications.stream().map(this::mapToResponse).toList();
     }
 
-    public void markAsRead(Integer notificationId) {
+    public void markAsRead(Integer currentUserId, Integer notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy notification với id = " + notificationId));
+                .orElseThrow(() -> new EntityNotFoundException("Khong tim thay notification voi id = " + notificationId));
 
+        profileAccessService.requireAccessibleProfile(currentUserId, notification.getProfile().getProfile());
         notification.setIsRead(true);
         notificationRepository.save(notification);
     }
 
-    private com.carenest.backend.dto.notification.NotificationResponse mapToResponse(Notification notification) {
+    private NotificationResponse mapToResponse(Notification notification) {
         return NotificationResponse.builder()
-            .notificationId(notification.getNotificationId())
-            .type(notification.getType())
-            .title(notification.getTitle())
-            .content(notification.getContent())
-            .scheduledTime(notification.getScheduledTime())
-            .isRead(notification.getIsRead())
-            .referenceId(notification.getReferenceId())
-            .build();
+                .notificationId(notification.getNotificationId())
+                .type(notification.getType())
+                .title(notification.getTitle())
+                .content(notification.getContent())
+                .scheduledTime(notification.getScheduledTime())
+                .isRead(notification.getIsRead())
+                .referenceId(notification.getReferenceId())
+                .build();
     }
 }

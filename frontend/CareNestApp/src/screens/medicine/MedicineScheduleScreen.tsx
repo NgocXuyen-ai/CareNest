@@ -15,10 +15,10 @@ import { TOP_BAR_HEIGHT, BOTTOM_NAV_HEIGHT } from '../../utils/constants';
 import Icon from '../../components/common/Icon';
 import TopAppBar from '../../components/layout/TopAppBar';
 import FAB from '../../components/common/FAB';
-import type { MedicineStackParamList } from '../../navigation/navigationTypes';
 import { getDailySchedule, takeDose, type DailyMedicineSchedule } from '../../api/medicine';
 import { useFamily } from '../../context/FamilyContext';
 import { useAuth } from '../../context/AuthContext';
+import { formatLocalDate } from '../../utils/dateTime';
 
 type Nav = NativeStackNavigationProp<any, 'MedicineSchedule'>;
 
@@ -42,7 +42,7 @@ export default function MedicineScheduleScreen() {
       return;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatLocalDate(new Date());
     void getDailySchedule(activeProfileId, today)
       .then(setSchedule)
       .catch(() => setSchedule(null));

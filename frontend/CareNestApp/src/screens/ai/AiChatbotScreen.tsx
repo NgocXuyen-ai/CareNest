@@ -11,7 +11,6 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Markdown from 'react-native-markdown-display';
 import { colors } from '../../theme/colors';
@@ -37,7 +36,6 @@ function normalizeMarkdown(content: string): string {
 }
 
 export default function AiChatbotScreen() {
-  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const { selectedProfileId } = useFamily();
@@ -105,7 +103,12 @@ export default function AiChatbotScreen() {
               </View>
             </View>
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              setMessages([]);
+              setConversationId(null);
+            }}
+          >
             <MaterialCommunityIcons name="dots-vertical" size={24} color={colors.onSurfaceVariant} />
           </TouchableOpacity>
         </View>
@@ -188,7 +191,7 @@ export default function AiChatbotScreen() {
 
             <TouchableOpacity
               style={styles.inputActionBtn}
-              onPress={() => navigation.navigate('VoiceAssistant')}
+              onPress={() => Alert.alert('Dang hoan thien', 'Voice assistant se duoc mo lai sau khi noi xong voice API end-to-end.')}
             >
               <MaterialCommunityIcons name="microphone" size={22} color={colors.outline} />
             </TouchableOpacity>

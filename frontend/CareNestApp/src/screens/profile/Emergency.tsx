@@ -7,12 +7,9 @@ import {
   TouchableOpacity,
   Animated,
   Linking,
-  Dimensions,
   Platform,
 } from 'react-native';
 import Icon from '../../components/common/Icon';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ── SUB-COMPONENTS ────────────────────────────────────────────────────────────
 
@@ -74,7 +71,7 @@ export default function Emergency() {
         }),
       ])
     ).start();
-  }, []);
+  }, [pulseAnim]);
 
   const handleCallSOS = () => {
     Linking.openURL('tel:115');

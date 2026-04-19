@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -19,6 +19,7 @@ import Icon from '../../components/common/Icon';
 import TopAppBar from '../../components/layout/TopAppBar';
 import type { FamilyStackParamList } from '../../navigation/navigationTypes';
 import { createGrowthLog, getGrowthSummary, type GrowthSummary } from '../../api/growth';
+import { formatLocalDate } from '../../utils/dateTime';
 
 type RouteT = RouteProp<FamilyStackParamList, 'GrowthTracker'>;
 type MetricKey = 'weight' | 'height';
@@ -52,7 +53,7 @@ export default function GrowthTrackerScreen() {
         profileId: Number(memberId),
         weight: Number(weightInput) || undefined,
         height: Number(heightInput) || undefined,
-        recordDate: new Date().toISOString().slice(0, 10),
+        recordDate: formatLocalDate(new Date()),
         note: noteInput,
       });
       setShowModal(false);

@@ -16,6 +16,24 @@ export interface FamilyResponse {
   members: FamilyMemberSummary[];
 }
 
+export interface FamilyJoinCodeResponse {
+  joinCode: string;
+  joinLink: string;
+  expiresAt: string;
+  familyId: number;
+  familyName: string;
+}
+
+export interface FamilyInvitationItem {
+  inviteId: number;
+  familyId?: number;
+  familyName?: string;
+  senderEmail?: string;
+  receiverEmail?: string;
+  status?: string;
+  createdAt?: string;
+}
+
 export interface ProfileDetails {
   profileId: number;
   fullName: string;
@@ -46,12 +64,16 @@ export async function updateProfile(profileId: number, payload: Record<string, u
   await apiPut(`/family/update-healthprofile/${profileId}`, payload);
 }
 
-export async function inviteMember(receiverEmail: string): Promise<void> {
-  await apiPost('/family/family/invitations', { receiverEmail });
+export async function inviteMember(receiverEmail: string, role: string): Promise<void> {
+  await apiPost('/family/family/invitations', { receiverEmail, role });
 }
 
-export async function getReceivedInvitations(): Promise<Array<Record<string, unknown>>> {
-  return apiGet<Array<Record<string, unknown>>>('/family/invitations/received');
+export async function getReceivedInvitations(): Promise<FamilyInvitationItem[]> {
+  return apiGet<FamilyInvitationItem[]>('/family/invitations/received');
+}
+
+export async function getSentInvitations(): Promise<FamilyInvitationItem[]> {
+  return apiGet<FamilyInvitationItem[]>('/family/invitations/sent');
 }
 
 export async function acceptInvitation(inviteId: number): Promise<void> {
@@ -60,6 +82,18 @@ export async function acceptInvitation(inviteId: number): Promise<void> {
 
 export async function rejectInvitation(inviteId: number): Promise<void> {
   await apiPost(`/family/${inviteId}/reject`);
+}
+
+export async function getFamilyJoinCode(): Promise<FamilyJoinCodeResponse> {
+  return apiGet<FamilyJoinCodeResponse>('/family/join-code');
+}
+
+export async function rotateFamilyJoinCode(): Promise<FamilyJoinCodeResponse> {
+  return apiPost<FamilyJoinCodeResponse>('/family/join-code/rotate');
+}
+
+export async function joinFamilyByCode(joinCode: string): Promise<FamilyResponse> {
+  return apiPost<FamilyResponse, { joinCode: string }>('/family/join-by-code', { joinCode });
 }
 
 export async function removeMember(profileId: number): Promise<void> {

@@ -11,35 +11,39 @@ _SENSITIVE_COLUMNS = re.compile(
     re.IGNORECASE,
 )
 
+_HEALTH_PROFILE_TABLE = re.compile(r"\bhealth_profile\b", re.IGNORECASE)
+_TENANT_FILTER = re.compile(
+    r"\b(?:health_profile|hp)\.user_id\b|\buser_id\b",
+    re.IGNORECASE,
+)
+
 
 def validate_sql(sql: str) -> tuple[bool, str]:
-    """
-    Validate that a generated SQL string is safe to execute.
-    Returns (is_safe, error_message).
-    """
+    """Validate that a generated SQL string is safe and tenant-scoped."""
     stripped = sql.strip()
 
     if not stripped:
-        return False, "SQL rỗng"
+        return False, "SQL rong"
 
-    # Block multiple statements (SQL injection via semicolon)
-    # Allow a trailing semicolon but not midway ones
     without_trailing = stripped.rstrip(";")
     if ";" in without_trailing:
-        return False, "Không cho phép nhiều câu lệnh SQL trong một request"
+        return False, "Khong cho phep nhieu cau lenh SQL trong mot request"
 
-    # Must start with SELECT
     if not re.match(r"^\s*SELECT\b", stripped, re.IGNORECASE):
-        return False, "Chỉ cho phép câu lệnh SELECT"
+        return False, "Chi cho phep cau lenh SELECT"
 
-    # Block dangerous keywords
     match = _DANGEROUS_KEYWORDS.search(stripped)
     if match:
-        return False, f"Từ khóa không được phép: {match.group().upper()}"
+        return False, f"Tu khoa khong duoc phep: {match.group().upper()}"
 
-    # Block sensitive column names
     match = _SENSITIVE_COLUMNS.search(stripped)
     if match:
-        return False, f"Không được truy vấn trường nhạy cảm: {match.group()}"
+        return False, f"Khong duoc truy van truong nhay cam: {match.group()}"
+
+    if not _HEALTH_PROFILE_TABLE.search(stripped):
+        return False, "Query phai join hoac truy van bang health_profile de gioi han tenant"
+
+    if not _TENANT_FILTER.search(stripped):
+        return False, "Query thieu dieu kien loc tenant theo health_profile.user_id"
 
     return True, ""

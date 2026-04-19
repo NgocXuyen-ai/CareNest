@@ -12,6 +12,7 @@ import Avatar from '../../components/common/Avatar';
 import TopAppBar from '../../components/layout/TopAppBar';
 import type { FamilyStackParamList } from '../../navigation/navigationTypes';
 import { getFamilyProfile, type ProfileDetails } from '../../api/family';
+import { formatBloodType, formatGender } from '../../utils/healthOptions';
 
 type NavProp = NativeStackNavigationProp<FamilyStackParamList, 'HealthProfileDetail'>;
 
@@ -27,116 +28,66 @@ export default function HealthProfileDetailScreen() {
   }, [route.params.memberId]);
 
   const statusColor = member?.healthStatus?.includes('THEO') ? '#E65100' : '#2E7D32';
-  const statusLabel = member?.healthStatus || 'Sức khỏe tốt';
+  const statusLabel = member?.healthStatus || 'Suc khoe tot';
 
-  function formatBirthday(d?: string) {
-    if (!d) return 'Chua cap nhat';
-    const [y, m, day] = d.split('-');
-    return `${day}/${m}/${y}`;
+  function formatBirthday(dateValue?: string) {
+    if (!dateValue) return 'Chua cap nhat';
+    const [year, month, day] = dateValue.split('-');
+    return `${day}/${month}/${year}`;
   }
 
   return (
     <View style={styles.root}>
-      <TopAppBar variant='detail' title={member?.fullName || 'Chi tiết hồ sơ'} />
+      <TopAppBar variant="detail" title={member?.fullName || 'Chi tiet ho so'} />
       <ScrollView
         contentContainerStyle={{ paddingTop: TOP_BAR_HEIGHT + insets.top + 16, paddingBottom: BOTTOM_NAV_HEIGHT + 16 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
         <View style={styles.heroSection}>
-          <Avatar name={member?.fullName || 'Thành viên'} size='xl' />
-          <Text style={styles.heroName}>{member?.fullName || 'Đang tải...'}</Text>
+          <Avatar name={member?.fullName || 'Thanh vien'} size="xl" />
+          <Text style={styles.heroName}>{member?.fullName || 'Dang tai...'}</Text>
           <View style={styles.heroBadgeRow}>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>Thành viên</Text>
+              <Text style={styles.roleText}>Thanh vien</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}22` }]}>
               <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
               <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
             </View>
           </View>
         </View>
-        {/* Basic Info Card */}
+
         <View style={[styles.card, shadows.sm]}>
           <Text style={styles.cardTitle}>Thong tin co ban</Text>
           <View style={styles.infoGrid}>
-            <View style={styles.infoItem}>
-              <Icon name='healing' size={16} color={colors.primary} />
-              <View>
-                <Text style={styles.infoLabel}>Nhom mau</Text>
-                <Text style={styles.infoValue}>{member?.bloodType ?? 'Chua ro'}</Text>
-              </View>
-            </View>
-            <View style={styles.infoItem}>
-              <Icon name='cake' size={16} color={colors.primary} />
-              <View>
-                <Text style={styles.infoLabel}>Ngay sinh</Text>
-                <Text style={styles.infoValue}>{formatBirthday(member?.birthday || undefined)}</Text>
-              </View>
-            </View>
-            <View style={styles.infoItem}>
-              <Icon name='person' size={16} color={colors.primary} />
-              <View>
-                <Text style={styles.infoLabel}>Gioi tinh</Text>
-                <Text style={styles.infoValue}>{member?.gender ?? 'Chua ro'}</Text>
-              </View>
-            </View>
-            <View style={styles.infoItem}>
-              <Icon name='height' size={16} color={colors.primary} />
-              <View>
-                <Text style={styles.infoLabel}>Chieu cao / Can nang</Text>
-                <Text style={styles.infoValue}>{member?.height ?? '--'} cm / {member?.weight ?? '--'} kg</Text>
-              </View>
-            </View>
+            <InfoRow label="Nhom mau" value={formatBloodType(member?.bloodType)} icon="healing" />
+            <InfoRow label="Ngay sinh" value={formatBirthday(member?.birthday || undefined)} icon="cake" />
+            <InfoRow label="Gioi tinh" value={formatGender(member?.gender)} icon="person" />
+            <InfoRow
+              label="Chieu cao / Can nang"
+              value={`${member?.height ?? '--'} cm / ${member?.weight ?? '--'} kg`}
+              icon="height"
+            />
           </View>
         </View>
 
-        {/* Medical History */}
         <View style={[styles.card, shadows.sm]}>
           <Text style={styles.cardTitle}>Tien su benh</Text>
-          {member?.medicalHistory ? (
-            <View style={styles.historyItem}>
-              <View style={styles.historyDot} />
-              <View style={styles.historyContent}>
-                <Text style={styles.historyName}>Ghi chú bệnh lý</Text>
-                <Text style={styles.historyDesc}>{member.medicalHistory}</Text>
-              </View>
-            </View>
-          ) : (
-            <Text style={styles.emptyText}>Chua co thong tin</Text>
-          )}
+          <Text style={styles.bodyText}>{member?.medicalHistory || 'Chua co thong tin'}</Text>
         </View>
 
-        {/* Allergies */}
         <View style={[styles.card, shadows.sm]}>
           <Text style={styles.cardTitle}>Di ung</Text>
-          <View style={styles.chipRow}>
-            {member?.allergy ? (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>{member.allergy}</Text>
-              </View>
-            ) : (
-              <Text style={styles.emptyText}>Khong co di ung</Text>
-            )}
-          </View>
+          <Text style={styles.bodyText}>{member?.allergy || 'Khong co di ung'}</Text>
         </View>
 
-        {/* QR Code Section */}
-        <View style={[styles.card, shadows.sm]}>
-          <Text style={styles.cardTitle}>Ma QR khan cap</Text>
-          <View style={styles.qrBox}>
-            <Icon name='qr_code' size={48} color={colors.onSurfaceVariant} />
-            <Text style={styles.qrHint}>Ma QR chua nhan thong tin y te khi can cap cuu</Text>
-          </View>
-        </View>
-        {/* Action Buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnPrimary]}
             activeOpacity={0.8}
             onPress={() => navigation.navigate('VaccinationTracker', { memberId: String(route.params.memberId) })}
           >
-            <Icon name='syringe' size={18} color={colors.onPrimary} />
+            <Icon name="syringe" size={18} color={colors.onPrimary} />
             <Text style={styles.actionBtnPrimaryText}>Lich tiem chung</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -144,7 +95,7 @@ export default function HealthProfileDetailScreen() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate('GrowthTracker', { memberId: String(route.params.memberId) })}
           >
-            <Icon name='trending_up' size={18} color={colors.primary} />
+            <Icon name="trending_up" size={18} color={colors.primary} />
             <Text style={styles.actionBtnSecondaryText}>Theo doi phat trien</Text>
           </TouchableOpacity>
         </View>
@@ -153,13 +104,28 @@ export default function HealthProfileDetailScreen() {
   );
 }
 
+function InfoRow({ label, value, icon }: { label: string; value: string; icon: string }) {
+  return (
+    <View style={styles.infoItem}>
+      <Icon name={icon} size={16} color={colors.primary} />
+      <View>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   heroSection: {
     alignItems: 'center',
-    paddingVertical: 24, paddingHorizontal: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     backgroundColor: colors.surfaceContainerLowest,
-    marginHorizontal: 16, borderRadius: 20, marginBottom: 12,
+    marginHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 12,
   },
   heroName: { fontSize: 22, fontFamily: 'Manrope', fontWeight: '800', color: colors.onSurface, marginTop: 12 },
   heroBadgeRow: { flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'center' },
@@ -170,31 +136,17 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 12, fontFamily: 'Inter', fontWeight: '600' },
   card: {
     backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: 16, padding: 16,
-    marginHorizontal: 16, marginBottom: 12,
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
   },
   cardTitle: { fontSize: 14, fontFamily: 'Manrope', fontWeight: '700', color: colors.onSurface, marginBottom: 12 },
   infoGrid: { gap: 12 },
   infoItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   infoLabel: { fontSize: 11, fontFamily: 'Inter', color: colors.onSurfaceVariant, marginBottom: 2 },
   infoValue: { fontSize: 14, fontFamily: 'Inter', fontWeight: '600', color: colors.onSurface },
-  emptyText: { fontSize: 13, fontFamily: 'Inter', color: colors.onSurfaceVariant, fontStyle: 'italic' },
-  historyItem: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  historyDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginTop: 5 },
-  historyContent: { flex: 1 },
-  historyName: { fontSize: 14, fontFamily: 'Inter', fontWeight: '600', color: colors.onSurface },
-  historyDesc: { fontSize: 13, fontFamily: 'Inter', color: colors.onSurfaceVariant, lineHeight: 18, marginTop: 2 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { backgroundColor: colors.errorContainer, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  chipText: { fontSize: 13, fontFamily: 'Inter', fontWeight: '600', color: colors.onErrorContainer },
-  qrBox: { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  qrHint: { fontSize: 13, fontFamily: 'Inter', color: colors.onSurfaceVariant, textAlign: 'center' },
-  emergencyRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  emergencyAvatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.primaryFixed, alignItems: 'center', justifyContent: 'center' },
-  emergencyInfo: { flex: 1 },
-  emergencyName: { fontSize: 15, fontFamily: 'Manrope', fontWeight: '700', color: colors.onSurface },
-  emergencyRelation: { fontSize: 12, fontFamily: 'Inter', color: colors.onSurfaceVariant, marginTop: 2 },
-  callBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  bodyText: { fontSize: 13, fontFamily: 'Inter', color: colors.onSurfaceVariant, lineHeight: 20 },
   actionRow: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginTop: 4 },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, paddingVertical: 14, gap: 8 },
   actionBtnPrimary: { backgroundColor: colors.primary },

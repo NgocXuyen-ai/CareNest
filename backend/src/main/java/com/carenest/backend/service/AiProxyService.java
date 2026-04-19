@@ -72,7 +72,7 @@ public class AiProxyService {
         body.put("user_id", userId);
         body.put("message", request.getMessage());
         body.put("conversation_id", request.getConversationId());
-        body.put("context", aiContextService.buildContext(userId, request.getProfileId()));
+        body.put("context", aiContextService.buildAiRoutingContext(userId, request.getProfileId()));
         return postJson("/internal/chat", body);
     }
 
@@ -109,7 +109,7 @@ public class AiProxyService {
         if (conversationId != null) {
             body.add("conversation_id", String.valueOf(conversationId));
         }
-        body.add("context_json", writeContextAsJson(aiContextService.buildContext(userId, profileId)));
+        body.add("context_json", writeContextAsJson(aiContextService.buildAiRoutingContext(userId, profileId)));
         body.add("audio", createAudioResource(audio));
 
         return exchangeForMap(
@@ -149,7 +149,7 @@ public class AiProxyService {
             scheduleRequest.setStartDate(startDate);
             scheduleRequest.setEndDate(parseEndDate(startDate, medicineDraft.getDuration()));
 
-            medicineService.createMedicineSchedule(scheduleRequest);
+            medicineService.createMedicineSchedule(userId, scheduleRequest);
 
             medicineIds.add(medicine.getMedicineId());
             MedicineSchedule schedule = medicineScheduleRepository

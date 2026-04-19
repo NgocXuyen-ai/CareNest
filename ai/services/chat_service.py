@@ -23,6 +23,11 @@ logger = logging.getLogger(__name__)
 
 _llm: Optional[ChatAnthropic] = None
 _CONVERSATION_TIMEOUT_MINUTES = 30
+_CONTEXT_ONLY_PATTERNS = [
+    re.compile(r"^\s*(xin chao|chao|hello|hi)\b", re.IGNORECASE),
+    re.compile(r"\b(ban la ai|ban giup duoc gi|help|huong dan|tro giup)\b", re.IGNORECASE),
+    re.compile(r"\b(cam on|thank you)\b", re.IGNORECASE),
+]
 
 
 def _get_llm() -> ChatAnthropic:
@@ -106,7 +111,7 @@ def _save_assistant_response(
             content=reply,
         )
     except Exception as exc:
-        logger.error(f"Failed to save assistant response: {exc}")
+        logger.error("Failed to save assistant response: %s", exc)
         return None
 
 
@@ -114,18 +119,18 @@ def _llm_judge_sql(user_message: str, user_id: int, sql: str) -> tuple[bool, str
     import json as _json
 
     llm = _get_llm()
-    prompt = f"""Bạn là security reviewer. Kiểm tra câu SQL có đạt đủ 3 tiêu chí:
-1. Trả lời đúng câu hỏi của user
-2. Lọc dữ liệu theo user_id = {user_id} (trực tiếp hoặc qua JOIN health_profile)
-3. Không trả về dữ liệu nhạy cảm không liên quan đến yêu cầu
+    prompt = f"""Ban la security reviewer. Kiem tra cau SQL co dat du 3 tieu chi:
+1. Tra loi dung cau hoi cua user
+2. Loc du lieu theo user_id = {user_id} (truc tiep hoac qua JOIN health_profile)
+3. Khong tra ve du lieu nhay cam khong lien quan den yeu cau
 
-Câu hỏi: {user_message}
+Cau hoi: {user_message}
 SQL: {sql}
 
-Chỉ trả lời JSON:
+Chi tra loi JSON:
 {{"ok": true}}
-hoặc
-{{"ok": false, "reason": "lý do ngắn bằng tiếng Việt"}}"""
+hoac
+{{"ok": false, "reason": "ly do ngan bang tieng Viet"}}"""
 
     try:
         resp = llm.invoke([HumanMessage(content=prompt)])
@@ -135,16 +140,27 @@ hoặc
         data = _json.loads(raw)
         if data.get("ok"):
             return True, ""
-        return False, data.get("reason", "SQL không hợp lệ theo đánh giá bảo mật")
+        return False, data.get("reason", "SQL khong hop le theo danh gia bao mat")
     except Exception as exc:
-        logger.warning(f"LLM judge failed (fail-open): {exc}")
-        return True, ""
+        logger.warning("LLM judge failed (fail-closed): %s", exc)
+        return False, "Khong the xac minh do an toan cua truy van duoc sinh ra"
+
+
+def _select_chat_route(user_message: str) -> str:
+    normalized = user_message.strip()
+    if not normalized:
+        return "context_only"
+
+    for pattern in _CONTEXT_ONLY_PATTERNS:
+        if pattern.search(normalized):
+            return "context_only"
+
+    return "sql_query"
 
 
 def process_chat(request: ChatRequest) -> ChatResponse:
     start_time = time.time()
     llm = _get_llm()
-
     conversation_id = request.conversation_id
 
     if conversation_id:
@@ -173,16 +189,19 @@ def process_chat(request: ChatRequest) -> ChatResponse:
             content=request.message,
         )
     except Exception as exc:
-        logger.error(f"Failed to save user message: {exc}")
+        logger.error("Failed to save user message: %s", exc)
 
     history: list[dict] = []
     try:
         all_history = conversation_service.get_recent_history(conversation_id, limit=10)
         history = [message for message in all_history if message["message_id"] != user_message_id]
     except Exception as exc:
-        logger.error(f"Failed to load history: {exc}")
+        logger.error("Failed to load history: %s", exc)
 
-    if request.context:
+    route = _select_chat_route(request.message)
+    logger.info("chat_route=%s conversation_id=%s user_id=%s", route, conversation_id, request.user_id)
+
+    if request.context and route == "context_only":
         prompt = build_structured_context_prompt(request.context, history, request.message)
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
@@ -202,8 +221,8 @@ def process_chat(request: ChatRequest) -> ChatResponse:
                 data=request.context.get("profiles") if isinstance(request.context, dict) else None,
             )
         except Exception as exc:
-            logger.error(f"Context-based chat failed: {exc}")
-            reply = "Xin lỗi, tôi chưa thể xử lý yêu cầu lúc này. Vui lòng thử lại sau."
+            logger.error("Context-based chat failed: %s", exc)
+            reply = "Xin loi, toi chua the xu ly yeu cau luc nay. Vui long thu lai sau."
             msg_id = _save_assistant_response(conversation_id, None, reply, "error", time.time() - start_time)
             conversation_service.touch_conversation(conversation_id)
             return ChatResponse(reply=reply, conversation_id=conversation_id, message_id=msg_id)
@@ -218,8 +237,8 @@ def process_chat(request: ChatRequest) -> ChatResponse:
         ])
         response_text = response1.content
     except Exception as exc:
-        logger.error(f"LLM call failed: {exc}")
-        reply = "Xin lỗi, tôi gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại."
+        logger.error("LLM call failed: %s", exc)
+        reply = "Xin loi, toi gap su co khi xu ly yeu cau. Vui long thu lai."
         msg_id = _save_assistant_response(conversation_id, None, reply, "error", time.time() - start_time)
         conversation_service.touch_conversation(conversation_id)
         return ChatResponse(reply=reply, conversation_id=conversation_id, message_id=msg_id)
@@ -232,14 +251,14 @@ def process_chat(request: ChatRequest) -> ChatResponse:
 
     is_safe, error_msg = validate_sql(sql)
     if not is_safe:
-        reply = f"Xin lỗi, tôi không thể thực hiện yêu cầu này: {error_msg}"
+        reply = f"Xin loi, toi khong the thuc hien yeu cau nay: {error_msg}"
         msg_id = _save_assistant_response(conversation_id, sql, reply, "error", time.time() - start_time)
         conversation_service.touch_conversation(conversation_id)
         return ChatResponse(reply=reply, conversation_id=conversation_id, message_id=msg_id, sql_generated=sql)
 
     is_valid, reason = _llm_judge_sql(request.message, request.user_id, sql)
     if not is_valid:
-        reply = f"Xin lỗi, tôi không thể thực hiện yêu cầu này: {reason}"
+        reply = f"Xin loi, toi khong the thuc hien yeu cau nay: {reason}"
         msg_id = _save_assistant_response(conversation_id, sql, reply, "error", time.time() - start_time)
         conversation_service.touch_conversation(conversation_id)
         return ChatResponse(reply=reply, conversation_id=conversation_id, message_id=msg_id, sql_generated=sql)
@@ -248,8 +267,9 @@ def process_chat(request: ChatRequest) -> ChatResponse:
         if not re.search(r"\bLIMIT\b", sql, re.IGNORECASE):
             sql = sql.rstrip(";").rstrip() + "\nLIMIT 50"
         rows = execute_query(sql)
-    except Exception:
-        reply = "Không tìm thấy dữ liệu phù hợp hoặc có lỗi khi truy vấn cơ sở dữ liệu."
+    except Exception as exc:
+        logger.error("SQL execution failed: %s", exc)
+        reply = "Khong tim thay du lieu phu hop hoac co loi khi truy van co so du lieu."
         msg_id = _save_assistant_response(conversation_id, sql, reply, "error", time.time() - start_time)
         conversation_service.touch_conversation(conversation_id)
         return ChatResponse(reply=reply, conversation_id=conversation_id, message_id=msg_id, sql_generated=sql)
@@ -260,8 +280,9 @@ def process_chat(request: ChatRequest) -> ChatResponse:
     try:
         response2 = llm.invoke([HumanMessage(content=result_prompt)])
         final_reply = response2.content
-    except Exception:
-        final_reply = f"Tìm thấy {len(rows)} kết quả." if rows else "Không tìm thấy dữ liệu phù hợp."
+    except Exception as exc:
+        logger.warning("Answer generation failed, fallback to summary: %s", exc)
+        final_reply = f"Tim thay {len(rows)} ket qua." if rows else "Khong tim thay du lieu phu hop."
 
     msg_id = _save_assistant_response(conversation_id, sql, final_reply, "success", time.time() - start_time)
     conversation_service.touch_conversation(conversation_id)
