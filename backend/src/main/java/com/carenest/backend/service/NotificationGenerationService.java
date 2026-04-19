@@ -117,7 +117,7 @@ public class NotificationGenerationService {
                 .findByPlannedDateBetweenAndStatus(
                         today,
                         next3Days,
-                        com.carenest.backend.model.enums.VaccinationStatus.PLANNED
+                "PLANNED"
                 );
 
         for (Vaccination vaccination : vaccinations) {

@@ -1,7 +1,6 @@
 package com.carenest.backend.repository;
 
 import com.carenest.backend.model.Vaccination;
-import com.carenest.backend.model.enums.VaccinationStatus;
 import com.carenest.backend.model.HealthProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -14,6 +13,6 @@ public interface VaccinationRepository extends JpaRepository<Vaccination, Intege
     List<Vaccination> findByPlannedDateBetweenAndStatus(
             LocalDate start,
             LocalDate end,
-            VaccinationStatus status
+            String status
     );
 }
