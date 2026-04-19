@@ -11,6 +11,12 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
+if grep -q $'\r' "$ENV_FILE"; then
+  echo "$ENV_FILE contains Windows CRLF line endings."
+  echo "Run: dos2unix $ENV_FILE"
+  exit 1
+fi
+
 set -a
 # shellcheck disable=SC1090
 source "$ENV_FILE"
@@ -18,6 +24,18 @@ set +a
 
 if [ -z "${SERVER_NAME:-}" ]; then
   echo "SERVER_NAME is required in .env.prod"
+  exit 1
+fi
+
+if [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
+  echo "SPRING_DATASOURCE_URL is required in .env.prod"
+  exit 1
+fi
+
+DB_HOST="$(echo "$SPRING_DATASOURCE_URL" | sed -E 's#^jdbc:postgresql://([^/:?]+).*$#\1#')"
+if [ -n "$DB_HOST" ] && ! getent hosts "$DB_HOST" >/dev/null 2>&1; then
+  echo "Cannot resolve database host from SPRING_DATASOURCE_URL: $DB_HOST"
+  echo "Fix DNS on VPS or update the connection string."
   exit 1
 fi
 
