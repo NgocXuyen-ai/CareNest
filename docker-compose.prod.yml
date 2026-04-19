@@ -16,8 +16,6 @@ services:
     volumes:
       - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./deploy/certs:/etc/nginx/certs:ro
-      - ./deploy/certbot/www:/var/www/certbot:ro
-      - ./deploy/certbot/conf:/etc/letsencrypt:ro
     networks:
       - public
       - app-internal

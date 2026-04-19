@@ -9,10 +9,6 @@ server {
         return 200 'ok';
     }
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
     location / {
         return 301 https://$host$request_uri;
     }
