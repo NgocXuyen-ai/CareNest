@@ -140,6 +140,12 @@ cd ai
 .\.venv\Scripts\python.exe -m compileall .
 ```
 
+Indexing:
+
+- `backend/scripts/ai_text2sql_indexes.sql` la script thu cong de them secondary index cho workload text-to-SQL/backend.
+- Script nay khong duoc app tu dong chay va khong duoc gan vao CI/CD.
+- Chỉ nen review tren moi truong non-prod hoac snapshot truoc khi tu chay thu cong len Neon.
+
 ## Luu y khi phat trien
 
 - Khong commit secret, token, password hoac `.env` that
