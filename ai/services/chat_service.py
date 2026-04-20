@@ -883,6 +883,10 @@ def _node_response_guard(state: ChatGraphState) -> ChatGraphState:
         _trace(state, "response_guard.skip", reason="route_is_terminal", route=route)
         return {}
 
+    if route == "context_answer":
+        _trace(state, "response_guard.skip", reason="already_context_guarded", route=route)
+        return {}
+
     reply = state.get("reply")
     if not isinstance(reply, str) or not reply.strip():
         _trace(state, "response_guard.skip", reason="empty_reply")
