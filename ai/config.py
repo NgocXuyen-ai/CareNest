@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     AZURE_TTS_VOICE: str = "alloy"
 
     # LLM
-    LLM_TIMEOUT: int = 30
+    LLM_TIMEOUT: int = 300
     LLM_MAX_RETRIES: int = 2
 
     # Database
