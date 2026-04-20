@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Dimensions,
   Image,
@@ -10,17 +11,29 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { ProfileStackParamList } from '../../navigation/navigationTypes';
 import Icon from '../../components/common/Icon';
+import { useAuth } from '../../context/AuthContext';
+import { useFamily } from '../../context/FamilyContext';
 import { getCurrentUserProfile } from '../../api/auth';
-import { getFamilyProfile, type ProfileDetails } from '../../api/family';
+import { getFamilyProfile, type FamilyRole, type ProfileDetails, updateFamilyMemberRole } from '../../api/family';
 import { formatBloodType, formatGender } from '../../utils/healthOptions';
 import Emergency from './Emergency';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TAB_WIDTH = (SCREEN_WIDTH - 40) / 2;
+const DEFAULT_EDITABLE_ROLE_OPTIONS: FamilyRole[] = [
+  'MEMBER',
+  'FATHER',
+  'MOTHER',
+  'OLDER_BROTHER',
+  'OLDER_SISTER',
+  'YOUNGER',
+  'OTHER',
+];
 
 const HealthCard = ({ title, value, icon, bgColor, textColor, children }: any) => (
   <View style={[styles.healthCard, { backgroundColor: bgColor }]}>
@@ -63,15 +76,41 @@ function calculateAge(birthday?: string | null) {
   return String(age);
 }
 
+function formatRole(role?: FamilyRole | null) {
+  switch (role) {
+    case 'OWNER':
+      return 'Chủ gia đình';
+    case 'FATHER':
+      return 'Bố';
+    case 'MOTHER':
+      return 'Mẹ';
+    case 'OLDER_BROTHER':
+      return 'Anh';
+    case 'OLDER_SISTER':
+      return 'Chị';
+    case 'YOUNGER':
+      return 'Em';
+    case 'OTHER':
+      return 'Người thân';
+    case 'MEMBER':
+    default:
+      return 'Thành viên';
+  }
+}
+
 export default function UserMedicalScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<ProfileStackParamList, 'UserMedical'>>();
   const { memberId } = route.params || {};
+  const { user } = useAuth();
+  const { family, members, refreshFamily } = useFamily();
 
   const [activeTab, setActiveTab] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const [profile, setProfile] = useState<ProfileDetails | null>(null);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [isRoleDropdownVisible, setIsRoleDropdownVisible] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -106,6 +145,55 @@ export default function UserMedicalScreen() {
   );
 
   const age = useMemo(() => calculateAge(profile?.birthday), [profile?.birthday]);
+  const viewedProfileId = useMemo(() => {
+    if (memberId) {
+      return Number(memberId);
+    }
+
+    if (profile?.profileId) {
+      return Number(profile.profileId);
+    }
+
+    return user?.profileId ? Number(user.profileId) : null;
+  }, [memberId, profile?.profileId, user?.profileId]);
+
+  const myMember = useMemo(
+    () => members.find(member => String(member.profileId) === user?.profileId),
+    [members, user?.profileId],
+  );
+
+  const targetMember = useMemo(() => {
+    if (!viewedProfileId) {
+      return undefined;
+    }
+    return members.find(member => member.profileId === viewedProfileId);
+  }, [members, viewedProfileId]);
+
+  const isOwner = family?.ownerUserId ? family.ownerUserId === user?.userId : myMember?.role === 'OWNER';
+  const isSelfProfile = viewedProfileId !== null && String(viewedProfileId) === user?.profileId;
+  const isTargetOwner =
+    targetMember?.role === 'OWNER' || (Boolean(targetMember) && isOwner && isSelfProfile);
+  const canEditRole = Boolean(targetMember) && !isTargetOwner && (isOwner || isSelfProfile);
+
+  const editableRoleOptions = useMemo(() => {
+    if (!targetMember) {
+      return [] as FamilyRole[];
+    }
+
+    return DEFAULT_EDITABLE_ROLE_OPTIONS;
+  }, [targetMember]);
+
+  const roleLabel = useMemo(() => {
+    if (targetMember?.role) {
+      return formatRole(targetMember.role);
+    }
+
+    if (!memberId) {
+      return 'Tài khoản của bạn';
+    }
+
+    return 'Thành viên';
+  }, [memberId, targetMember?.role]);
   const bmi = useMemo(() => {
     const height = Number(profile?.height || 0);
     const weight = Number(profile?.weight || 0);
@@ -129,6 +217,48 @@ export default function UserMedicalScreen() {
     .split(',')
     .map(item => item.trim())
     .filter(Boolean);
+
+  const handleUpdateMemberRole = async (nextRole: FamilyRole) => {
+    if (!viewedProfileId) {
+      return;
+    }
+
+    try {
+      setIsUpdatingRole(true);
+      await updateFamilyMemberRole(viewedProfileId, nextRole);
+      await Promise.all([refreshFamily(), loadProfile()]);
+      Alert.alert('Cập nhật thành công', 'Vai trò thành viên đã được cập nhật.');
+    } catch (error) {
+      Alert.alert(
+        'Không thể cập nhật vai trò',
+        error instanceof Error ? error.message : 'Đã có lỗi xảy ra',
+      );
+    } finally {
+      setIsUpdatingRole(false);
+      setIsRoleDropdownVisible(false);
+    }
+  };
+
+  const openRoleEditor = () => {
+    if (!canEditRole || !targetMember || isUpdatingRole) {
+      return;
+    }
+
+    setIsRoleDropdownVisible(prev => !prev);
+  };
+
+  const handleSelectRole = (role: FamilyRole) => {
+    if (!targetMember || isUpdatingRole) {
+      return;
+    }
+
+    setIsRoleDropdownVisible(false);
+    if (targetMember.role === role) {
+      return;
+    }
+
+    void handleUpdateMemberRole(role);
+  };
 
   const renderTabContent = () => {
     if (activeTab === 1) {
@@ -229,10 +359,53 @@ export default function UserMedicalScreen() {
           </View>
 
           <Text style={styles.userName}>{profile?.fullName || 'Đang tải...'}</Text>
-          <View style={styles.roleChip}>
-            <Text style={styles.roleText}>
-              {memberId ? 'THÀNH VIÊN GIA ĐÌNH' : 'TÀI KHOẢN CỦA BẠN'}
-            </Text>
+          <View style={styles.roleEditorWrap}>
+            <View style={styles.roleRow}>
+              <View style={styles.roleChip}>
+                <Text style={styles.roleText}>{roleLabel}</Text>
+              </View>
+              {canEditRole ? (
+                <TouchableOpacity
+                  style={styles.roleEditBtn}
+                  onPress={openRoleEditor}
+                  disabled={isUpdatingRole}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons name="pencil" size={14} color="#3B82F6" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {canEditRole && isRoleDropdownVisible && targetMember ? (
+              <View style={styles.roleDropdown}>
+                {editableRoleOptions.map(role => {
+                  const isCurrentRole = targetMember.role === role;
+                  return (
+                    <TouchableOpacity
+                      key={role}
+                      style={[
+                        styles.roleDropdownItem,
+                        isCurrentRole && styles.roleDropdownItemSelected,
+                      ]}
+                      onPress={() => handleSelectRole(role)}
+                      disabled={isUpdatingRole}
+                    >
+                      <Text
+                        style={[
+                          styles.roleDropdownText,
+                          isCurrentRole && styles.roleDropdownTextSelected,
+                        ]}
+                      >
+                        {formatRole(role)}
+                      </Text>
+                      {isCurrentRole ? (
+                        <MaterialCommunityIcons name="check" size={16} color="#3B82F6" />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
           </View>
           <Text style={styles.userMeta}>
             {age || '--'} Tuổi • {formatGender(profile?.gender)}
@@ -314,14 +487,53 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontFamily: 'Inter',
   },
+  roleEditorWrap: { alignItems: 'center', marginTop: 10 },
+  roleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   roleChip: {
     backgroundColor: '#EBF2FF',
     paddingHorizontal: 16,
     paddingVertical: 4,
     borderRadius: 20,
-    marginTop: 10,
   },
   roleText: { color: '#3B82F6', fontSize: 13, fontWeight: '800', fontFamily: 'Inter' },
+  roleEditBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EBF2FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  roleDropdown: {
+    width: 200,
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    overflow: 'hidden',
+  },
+  roleDropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  roleDropdownItemSelected: {
+    backgroundColor: '#EFF6FF',
+  },
+  roleDropdownText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+    fontFamily: 'Inter',
+  },
+  roleDropdownTextSelected: {
+    color: '#3B82F6',
+  },
   userMeta: {
     fontSize: 15,
     color: '#64748B',

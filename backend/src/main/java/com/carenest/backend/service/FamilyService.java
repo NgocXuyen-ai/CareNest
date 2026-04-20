@@ -36,6 +36,7 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeWriter;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -202,9 +203,40 @@ public class FamilyService {
         return MyFamilyResponse.builder()
                 .familyId(family.getFamilyId())
                 .familyName(family.getName())
+                .ownerUserId(family.getOwner().getUserId())
                 .memberCount(members.size())
                 .members(members)
                 .build();
+    }
+
+    public MyFamilyResponse updateMemberRole(Integer currentUserId, Integer profileId, FamilyRole nextRole) {
+        FamilyRelationship currentRelationship = getRequiredFamilyRelationship(currentUserId);
+        Integer familyId = currentRelationship.getFamily().getFamilyId();
+
+        FamilyRelationship targetRelationship = familyRelationshipRepository
+                .findByProfile_ProfileAndFamily_FamilyId(profileId, familyId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thành viên trong gia đình"));
+
+        boolean isSelf = currentRelationship.getProfile().getProfile().equals(profileId);
+        boolean isFamilyOwner = currentRelationship.getFamily().getOwner().getUserId().equals(currentUserId);
+
+        if (!isSelf && !isFamilyOwner) {
+            throw new RuntimeException("Bạn chỉ có thể chỉnh vai trò của chính mình");
+        }
+
+        boolean isTargetFamilyOwner = targetRelationship
+                .getFamily()
+                .getOwner()
+                .getUserId()
+                .equals(targetRelationship.getProfile().getUser().getUserId());
+        if (isTargetFamilyOwner) {
+            throw new RuntimeException("Chủ gia đình không thể thay đổi vai trò");
+        }
+
+        FamilyRole normalizedRole = normalizeRoleForUpdate(nextRole);
+        targetRelationship.setRole(normalizedRole);
+        familyRelationshipRepository.saveAndFlush(targetRelationship);
+        return getMyFamily(currentUserId);
     }
 
     public ProfileDetailsResponse getFamilyMemberProfile(Integer currentUserId, Integer targetProfileId) {
@@ -424,12 +456,13 @@ public class FamilyService {
         });
 
         Family family = getJoinableFamily(currentUserId, request.getJoinCode());
-        FamilyRelationship relationship = buildJoinRelationship(profile, family);
-        familyRelationshipRepository.save(relationship);
+        FamilyRole joinRole = normalizeJoinRole(request.getRole());
+        FamilyRelationship relationship = buildJoinRelationship(profile, family, joinRole);
+        persistJoinRelationship(relationship);
         return getMyFamily(currentUserId);
     }
 
-    public MyFamilyResponse joinByQr(Integer currentUserId, MultipartFile image) {
+    public MyFamilyResponse joinByQr(Integer currentUserId, MultipartFile image, String rawRole) {
         if (image == null || image.isEmpty()) {
             throw new RuntimeException("Không tìm thấy ảnh QR");
         }
@@ -438,6 +471,7 @@ public class FamilyService {
         String joinCode = extractJoinCode(qrPayload);
         JoinFamilyByCodeRequest request = new JoinFamilyByCodeRequest();
         request.setJoinCode(joinCode);
+        request.setRole(parseRole(rawRole));
         return joinByCode(currentUserId, request);
     }
 
@@ -459,7 +493,7 @@ public class FamilyService {
 
     private FamilyRelationship getRequiredOwnerRelationship(Integer currentUserId) {
         FamilyRelationship relationship = getRequiredFamilyRelationship(currentUserId);
-        if (relationship.getRole() != FamilyRole.OWNER) {
+        if (!relationship.getFamily().getOwner().getUserId().equals(currentUserId)) {
             throw new RuntimeException("Chỉ OWNER mới được thực hiện thao tác này");
         }
         return relationship;
@@ -493,13 +527,74 @@ public class FamilyService {
         return family;
     }
 
-    private FamilyRelationship buildJoinRelationship(HealthProfile profile, Family family) {
+    private FamilyRelationship buildJoinRelationship(HealthProfile profile, Family family, FamilyRole role) {
         FamilyRelationship relationship = new FamilyRelationship();
         relationship.setProfile(profile);
         relationship.setFamily(family);
-        relationship.setRole(FamilyRole.MEMBER);
+        relationship.setRole(role);
         relationship.setJoinAt(LocalDate.now());
         return relationship;
+    }
+
+    private FamilyRole parseRole(String rawRole) {
+        if (rawRole == null || rawRole.isBlank()) {
+            return null;
+        }
+
+        try {
+            return FamilyRole.valueOf(rawRole.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new RuntimeException("Vai trò không hợp lệ");
+        }
+    }
+
+    private FamilyRole normalizeJoinRole(FamilyRole role) {
+        if (role == null) {
+            return FamilyRole.MEMBER;
+        }
+
+        if (role == FamilyRole.OWNER) {
+            throw new RuntimeException("Không thể tham gia với vai trò OWNER");
+        }
+
+        return role;
+    }
+
+    private FamilyRole normalizeRoleForUpdate(FamilyRole role) {
+        if (role == null) {
+            throw new RuntimeException("Vai trò không hợp lệ");
+        }
+
+        if (role == FamilyRole.OWNER) {
+            throw new RuntimeException("Không thể cập nhật sang vai trò OWNER");
+        }
+
+        return role;
+    }
+
+    private void persistJoinRelationship(FamilyRelationship relationship) {
+        try {
+            familyRelationshipRepository.saveAndFlush(relationship);
+        } catch (DataIntegrityViolationException ex) {
+            if (!isRoleConstraintViolation(ex)) {
+                throw ex;
+            }
+
+            relationship.setRole(FamilyRole.OTHER);
+            familyRelationshipRepository.saveAndFlush(relationship);
+        }
+    }
+
+    private boolean isRoleConstraintViolation(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.contains("family_relationship_role_check")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private void ensureActiveJoinCode(Family family) {

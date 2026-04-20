@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -26,6 +27,7 @@ import {
   formatGender,
   GENDER_OPTIONS,
 } from '../../utils/healthOptions';
+import { formatLocalDate } from '../../utils/dateTime';
 
 interface InputFieldProps {
   icon: string;
@@ -67,23 +69,41 @@ function InputField({
   );
 }
 
-function formatBirthdayInput(value?: string | null) {
+function parseIsoBirthday(value?: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const [yearText, monthText, dayText] = value.split('-');
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatBirthdayFromDate(date: Date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function normalizePhoneValue(value?: string | null): string {
   if (!value) {
     return '';
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  return date.toLocaleDateString('vi-VN');
-}
 
-function toIsoBirthday(value: string) {
-  const [day, month, year] = value.split('/');
-  if (!day || !month || !year) {
-    return '';
-  }
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  return value.trim().replace(/[\s().-]/g, '');
 }
 
 function formatMemberRole(role?: string) {
@@ -121,6 +141,8 @@ export default function UserProfileSettingsScreen() {
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState('');
   const [birthday, setBirthday] = useState('');
+  const [birthdayDate, setBirthdayDate] = useState<Date | null>(null);
+  const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
   const [bloodType, setBloodType] = useState('O_POSITIVE');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [gender, setGender] = useState('OTHER');
@@ -143,7 +165,9 @@ export default function UserProfileSettingsScreen() {
         setFullName(profile.fullName);
         setEmail(profile.email);
         setPhone(profile.phoneNumber || '');
-        setBirthday(formatBirthdayInput(profile.birthday));
+        const parsedBirthday = parseIsoBirthday(profile.birthday);
+        setBirthdayDate(parsedBirthday);
+        setBirthday(parsedBirthday ? formatBirthdayFromDate(parsedBirthday) : '');
         setBloodType(profile.bloodType || 'O_POSITIVE');
         setGender(profile.gender || 'OTHER');
         setMedicalHistory(profile.medicalHistory || '');
@@ -186,29 +210,36 @@ export default function UserProfileSettingsScreen() {
   };
 
   const handleSave = async () => {
-    const isoBirthday = toIsoBirthday(birthday);
-    if (!isoBirthday) {
+    if (!birthdayDate) {
       Alert.alert(
         'Ngày sinh chưa hợp lệ',
-        'Vui lòng nhập ngày sinh theo định dạng dd/mm/yyyy.',
+        'Vui lòng chọn ngày sinh hợp lệ.',
       );
       return;
     }
+
+    const normalizedPhone = normalizePhoneValue(phone);
+    if (!normalizedPhone) {
+      Alert.alert('Thiếu số điện thoại', 'Vui lòng nhập số điện thoại hợp lệ.');
+      return;
+    }
+
+    const normalizedEmergencyPhone = normalizePhoneValue(emergencyContactPhone);
 
     try {
       setIsSaving(true);
       await updateCurrentUserProfile({
         fullName,
         email,
-        phoneNumber: phone,
-        birthday: isoBirthday,
+        phoneNumber: normalizedPhone,
+        birthday: formatLocalDate(birthdayDate),
         gender,
         bloodType,
         medicalHistory,
         allergy,
         height,
         weight,
-        emergencyContactPhone,
+        emergencyContactPhone: normalizedEmergencyPhone || undefined,
       });
       await Promise.all([refreshUser(), refreshFamily()]);
       setIsEditing(false);
@@ -224,6 +255,16 @@ export default function UserProfileSettingsScreen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleBirthdayChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowBirthdayPicker(false);
+    if (!selectedDate) {
+      return;
+    }
+
+    setBirthdayDate(selectedDate);
+    setBirthday(formatBirthdayFromDate(selectedDate));
   };
 
   return (
@@ -306,13 +347,42 @@ export default function UserProfileSettingsScreen() {
               editable={isEditing}
             />
             <InputField
-              icon="calendar_today"
-              label="Ngày sinh"
-              value={birthday}
-              onChangeText={setBirthday}
-              placeholder="dd/mm/yyyy"
+              icon="contact_phone"
+              label="Số điện thoại khẩn cấp"
+              value={emergencyContactPhone}
+              onChangeText={setEmergencyContactPhone}
+              keyboardType="phone-pad"
+              placeholder="Để trống nếu chưa có"
               editable={isEditing}
             />
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrap}>
+                <Icon name="calendar_today" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.inputContent}>
+                <Text style={styles.inputLabel}>Ngày sinh</Text>
+                <TouchableOpacity
+                  activeOpacity={isEditing ? 0.75 : 1}
+                  onPress={() => {
+                    if (!isEditing) {
+                      return;
+                    }
+
+                    setShowBirthdayPicker(true);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.textInput,
+                      !birthday && styles.placeholderText,
+                      !isEditing && styles.textInputReadonly,
+                    ]}
+                  >
+                    {birthday || 'dd/mm/yyyy'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             <SelectField
               icon="wc"
               label="Giới tính"
@@ -410,6 +480,16 @@ export default function UserProfileSettingsScreen() {
           <Text style={styles.logoutText}>Đăng xuất tài khoản</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {showBirthdayPicker ? (
+        <DateTimePicker
+          value={birthdayDate || new Date(2000, 0, 1)}
+          mode="date"
+          display="default"
+          maximumDate={new Date()}
+          onChange={handleBirthdayChange}
+        />
+      ) : null}
     </View>
   );
 }
@@ -519,6 +599,10 @@ const styles = StyleSheet.create({
   },
   textInputReadonly: {
     color: '#1E293B',
+  },
+  placeholderText: {
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   settingsRow: {
     flexDirection: 'row',

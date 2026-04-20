@@ -1,9 +1,19 @@
 import { apiDelete, apiGet, apiGetCached, apiPost, apiPut, invalidateApiGetCache } from './client';
 
+export type FamilyRole =
+  | 'OWNER'
+  | 'MEMBER'
+  | 'FATHER'
+  | 'MOTHER'
+  | 'OLDER_BROTHER'
+  | 'OLDER_SISTER'
+  | 'YOUNGER'
+  | 'OTHER';
+
 export interface FamilyMemberSummary {
   profileId: number;
   fullName: string;
-  role: string;
+  role: FamilyRole;
   avatarUrl?: string | null;
   age?: number | null;
   healthStatus?: string | null;
@@ -12,6 +22,7 @@ export interface FamilyMemberSummary {
 export interface FamilyResponse {
   familyId: number;
   familyName: string;
+  ownerUserId?: number;
   memberCount: number;
   members: FamilyMemberSummary[];
 }
@@ -68,7 +79,7 @@ export async function updateProfile(profileId: number, payload: Record<string, u
   invalidateApiGetCache([`/family/profiles/${profileId}`, '/family/family', '/dashboard']);
 }
 
-export async function inviteMember(receiverEmail: string, role: string): Promise<void> {
+export async function inviteMember(receiverEmail: string, role: FamilyRole): Promise<void> {
   await apiPost('/family/family/invitations', { receiverEmail, role });
   invalidateApiGetCache(['/family/invitations/']);
 }
@@ -99,21 +110,26 @@ export async function rotateFamilyJoinCode(): Promise<FamilyJoinCodeResponse> {
   return apiPost<FamilyJoinCodeResponse>('/family/join-code/rotate');
 }
 
-export async function joinFamilyByCode(joinCode: string): Promise<FamilyResponse> {
-  const response = await apiPost<FamilyResponse, { joinCode: string }>('/family/join-by-code', {
+export async function joinFamilyByCode(joinCode: string, role?: FamilyRole): Promise<FamilyResponse> {
+  const response = await apiPost<FamilyResponse, { joinCode: string; role?: FamilyRole }>('/family/join-by-code', {
     joinCode,
+    role,
   });
   invalidateApiGetCache(['/family/family', '/family/invitations/', '/dashboard']);
   return response;
 }
 
 export async function joinFamilyByQr(formData: FormData): Promise<FamilyResponse> {
-  const response = await apiPost<FamilyResponse, FormData>('/family/join-by-qr', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const response = await apiPost<FamilyResponse, FormData>('/family/join-by-qr', formData);
   invalidateApiGetCache(['/family/family', '/family/invitations/', '/dashboard']);
+  return response;
+}
+
+export async function updateFamilyMemberRole(profileId: number, role: FamilyRole): Promise<FamilyResponse> {
+  const response = await apiPut<FamilyResponse, { role: FamilyRole }>(`/family/members/${profileId}/role`, {
+    role,
+  });
+  invalidateApiGetCache(['/family/family', '/dashboard']);
   return response;
 }
 
