@@ -18,7 +18,7 @@ cd carenest-webdev2026
 
 ## Yêu cầu
 
-* Java 21
+* Java 17
 * Node.js (>= 18)
 * PostgreSQL
 * Python 3.10+
