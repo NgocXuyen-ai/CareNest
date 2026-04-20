@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     RATE_LIMIT_VOICE: str = "10/minute"
     RATE_LIMIT_DEFAULT: str = "30/minute"
 
+    # AI logging / tracing
+    AI_LOG_LEVEL: str = "INFO"
+    AI_TRACE_ENABLED: bool = True
+    AI_TRACE_LOG_PROMPTS: bool = False
+    AI_TRACE_MAX_PREVIEW_CHARS: int = 800
+    AI_TRACE_PRINT_STDOUT: bool = True
+
     model_config = SettingsConfigDict(
         env_file=(
             str(Path(__file__).parent.parent / ".env.prod"),
