@@ -24,6 +24,7 @@ import { useFamily } from '../../context/FamilyContext';
 import { useAuth } from '../../context/AuthContext';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
+import { normalizeUploadUri } from '../../utils/uploadUri';
 
 interface Message {
   id: string;
@@ -41,10 +42,6 @@ const QUICK_PROMPTS = [
 
 function normalizeMarkdown(content: string): string {
   return content.replace(/\r\n/g, '\n').replace(/\\n/g, '\n').trim();
-}
-
-function toUploadUri(path: string): string {
-  return path.startsWith('file://') ? path : `file://${path}`;
 }
 
 interface MessageBubbleProps {
@@ -274,7 +271,7 @@ export default function AiChatbotScreen() {
 
       const formData = new FormData();
       formData.append('audio', {
-        uri: toUploadUri(recordedPath),
+        uri: normalizeUploadUri(recordedPath),
         type: 'audio/mp4',
         name: `voice-${Date.now()}.m4a`,
       } as any);
