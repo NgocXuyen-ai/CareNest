@@ -136,6 +136,12 @@ export default function MedicineCabinetScreen() {
                     <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
                       <Text style={[styles.statusText, { color: config.textColor }]}>{config.label}</Text>
                     </View>
+                    <TouchableOpacity
+                      style={styles.scheduleActionBtn}
+                      onPress={() => navigation.navigate('AddMedicineSchedule', { medicineId: medicine.medicineId })}
+                    >
+                      <Icon name="calendar_month" size={18} color={colors.primary} />
+                    </TouchableOpacity>
                   </View>
                 );
               })
@@ -216,9 +222,9 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: 'Inter', color: colors.onSurfaceVariant, fontStyle: 'italic' },
   medRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 16,
     gap: 12,
   },
   medRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.outlineVariant },
@@ -229,10 +235,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryFixed,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   medContent: { flex: 1 },
-  medName: { fontSize: 14, fontFamily: 'Inter', fontWeight: '600', color: colors.onSurface },
+  medName: { fontSize: 14, fontFamily: 'Inter', fontWeight: '600', color: colors.onSurface, lineHeight: 20 },
   medMeta: { fontSize: 12, fontFamily: 'Inter', color: colors.onSurfaceVariant, marginTop: 2 },
-  statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
+  statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'center' },
   statusText: { fontSize: 11, fontFamily: 'Inter', fontWeight: '700' },
+  scheduleActionBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: colors.primaryFixed,
+    marginLeft: 4,
+  },
 });

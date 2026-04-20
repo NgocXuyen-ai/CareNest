@@ -4,14 +4,24 @@ import type { ProfileStackParamList } from './navigationTypes';
 
 import UserProfileSettingsScreen from '../screens/profile/UserProfileSettingsScreen';
 import UserMedicalScreen from '../screens/profile/UserMedicalScreen';
+import LanguageSelectionScreen from '../screens/profile/LanguageSelectionScreen';
+import PolicyScreen from '../screens/profile/PolicyScreen';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 export default function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="UserProfileSettings" component={UserProfileSettingsScreen} />
+      <Stack.Screen
+        name="UserProfileSettings"
+        component={UserProfileSettingsScreen}
+      />
       <Stack.Screen name="UserMedical" component={UserMedicalScreen} />
+      <Stack.Screen
+        name="LanguageSelection"
+        component={LanguageSelectionScreen}
+      />
+      <Stack.Screen name="Policy" component={PolicyScreen} />
     </Stack.Navigator>
   );
 }

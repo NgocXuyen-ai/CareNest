@@ -18,6 +18,7 @@ import type { Permission } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { launchCamera, launchImageLibrary, type Asset, type ImagePickerResponse } from 'react-native-image-picker';
+import LogoHouse from '../../assets/branding/carenest-logo-house.png';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
@@ -995,16 +996,13 @@ export default function FamilyManagementScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
-          <TouchableOpacity style={styles.profileBtn}>
-            <Image
-              source={{
-                uri:
-                  user?.avatarUrl ||
-                  'https://ui-avatars.com/api/?name=User&background=1a73e8&color=fff',
-              }}
-              style={styles.smallAvatar}
-            />
-          </TouchableOpacity>
+        <View style={styles.logoBtn}>
+          <Image
+            source={LogoHouse}
+            style={styles.logoIcon}
+            resizeMode="contain"
+          />
+        </View>
           <Text style={styles.topBarTitle}>{hasFamily ? familyName : 'Gia đình'}</Text>
         </View>
       </View>
@@ -1035,6 +1033,13 @@ const styles = StyleSheet.create({
   topBarTitle: { fontSize: 18, fontWeight: '800', color: '#0369a1' },
   topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   smallAvatar: { width: 36, height: 36, borderRadius: 18 },
+  logoIcon: { width: 32, height: 32 },
+  logoBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   profileBtn: {
     width: 36,
     height: 36,

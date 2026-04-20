@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   groupIconWrap: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   groupLabel: { flex: 1, fontSize: 14, fontFamily: 'Manrope', fontWeight: '700', color: colors.onSurface },
   card: { backgroundColor: colors.surfaceContainerLowest, borderRadius: 16, overflow: 'hidden' },
-  schedRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
+  schedRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 14, paddingVertical: 16, gap: 12 },
   schedRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.outlineVariant },
   schedRowTaken: { opacity: 0.55 },
   checkCircle: {
@@ -201,10 +201,11 @@ const styles = StyleSheet.create({
     borderColor: colors.outlineVariant,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 4,
   },
   checkCircleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   schedContent: { flex: 1 },
-  schedName: { fontSize: 14, fontFamily: 'Inter', fontWeight: '600', color: colors.onSurface },
+  schedName: { fontSize: 14, fontFamily: 'Inter', fontWeight: '600', color: colors.onSurface, lineHeight: 20 },
   schedNameTaken: { textDecorationLine: 'line-through', color: colors.onSurfaceVariant },
   schedDosage: { fontSize: 12, fontFamily: 'Inter', color: colors.onSurfaceVariant, marginTop: 2 },
 });

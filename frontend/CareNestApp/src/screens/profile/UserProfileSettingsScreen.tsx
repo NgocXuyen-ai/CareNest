@@ -10,7 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -19,8 +21,14 @@ import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
 import Icon from '../../components/common/Icon';
 import SelectField from '../../components/common/SelectField';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useFamily } from '../../context/FamilyContext';
-import { getCurrentUserProfile, updateCurrentUserProfile } from '../../api/auth';
+import {
+  getCurrentUserProfile,
+  updateCurrentUserProfile,
+} from '../../api/auth';
+import { useThemedColors } from '../../hooks/useThemedColors';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   BLOOD_TYPE_OPTIONS,
   formatBloodType,
@@ -35,7 +43,7 @@ interface InputFieldProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric';
   editable?: boolean;
 }
 
@@ -48,20 +56,40 @@ function InputField({
   keyboardType = 'default',
   editable = true,
 }: InputFieldProps) {
+  const themedColors = useThemedColors();
+
   return (
-    <View style={styles.inputContainer}>
-      <View style={styles.inputIconWrap}>
-        <Icon name={icon} size={20} color={colors.primary} />
+    <View
+      style={[
+        styles.inputContainer,
+        { borderBottomColor: themedColors.surfaceVariant },
+      ]}
+    >
+      <View
+        style={[
+          styles.inputIconWrap,
+          { backgroundColor: themedColors.primaryContainer },
+        ]}
+      >
+        <Icon name={icon} size={20} color={themedColors.primary} />
       </View>
       <View style={styles.inputContent}>
-        <Text style={styles.inputLabel}>{label}</Text>
+        <Text
+          style={[styles.inputLabel, { color: themedColors.onSurfaceVariant }]}
+        >
+          {label}
+        </Text>
         <TextInput
-          style={[styles.textInput, !editable && styles.textInputReadonly]}
+          style={[
+            styles.textInput,
+            { color: themedColors.onSurface },
+            !editable && styles.textInputReadonly,
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           keyboardType={keyboardType}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={themedColors.onSurfaceVariant}
           editable={editable}
         />
       </View>
@@ -134,6 +162,9 @@ export default function UserProfileSettingsScreen() {
   const navigation = useNavigation<any>();
   const { user, logout, refreshUser } = useAuth();
   const { members, refreshFamily } = useFamily();
+  const themedColors = useThemedColors();
+  const { language } = useLanguage();
+  const { t } = useTranslation();
 
   const [medReminder, setMedReminder] = useState(true);
   const [apptReminder, setApptReminder] = useState(true);
@@ -154,8 +185,30 @@ export default function UserProfileSettingsScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  const bmiData = useMemo(() => {
+    const h = Number(height || 0);
+    const w = Number(weight || 0);
+    if (h < 1 || w < 0.1) return null;
+    const val = w / (h / 100) ** 2;
+    let label = 'Bình thường';
+    let color = '#22C55E';
+    if (val < 18.5) {
+      label = 'Gầy';
+      color = '#3B82F6';
+    } else if (val >= 25 && val < 30) {
+      label = 'Thừa cân';
+      color = '#F59E0B';
+    } else if (val >= 30) {
+      label = 'Béo phì';
+      color = '#EF4444';
+    }
+    return { value: val.toFixed(1), label, color };
+  }, [height, weight]);
+
   const memberRole = useMemo(() => {
-    const currentMember = members.find(member => String(member.profileId) === user?.profileId);
+    const currentMember = members.find(
+      member => String(member.profileId) === user?.profileId,
+    );
     return formatMemberRole(currentMember?.role);
   }, [members, user?.profileId]);
 
@@ -167,7 +220,9 @@ export default function UserProfileSettingsScreen() {
         setPhone(profile.phoneNumber || '');
         const parsedBirthday = parseIsoBirthday(profile.birthday);
         setBirthdayDate(parsedBirthday);
-        setBirthday(parsedBirthday ? formatBirthdayFromDate(parsedBirthday) : '');
+        setBirthday(
+          parsedBirthday ? formatBirthdayFromDate(parsedBirthday) : '',
+        );
         setBloodType(profile.bloodType || 'O_POSITIVE');
         setGender(profile.gender || 'OTHER');
         setMedicalHistory(profile.medicalHistory || '');
@@ -199,28 +254,22 @@ export default function UserProfileSettingsScreen() {
 
   const handleChoosePhoto = () => {
     if (!isEditing) {
-      Alert.alert('Chế độ xem', 'Bấm Sửa để bật chỉnh sửa thông tin tài khoản.');
+      Alert.alert(t('viewMode'), t('clickEditToEnableEditing'));
       return;
     }
 
-    Alert.alert(
-      'Chưa hỗ trợ',
-      'Tính năng đổi ảnh đại diện sẽ được kết nối khi backend upload ảnh sẵn sàng.',
-    );
+    Alert.alert(t('notYetSupported'), t('avatarFeatureNotReady'));
   };
 
   const handleSave = async () => {
     if (!birthdayDate) {
-      Alert.alert(
-        'Ngày sinh chưa hợp lệ',
-        'Vui lòng chọn ngày sinh hợp lệ.',
-      );
+      Alert.alert(t('invalidBirthday'), t('pleaseSelectValidBirthday'));
       return;
     }
 
     const normalizedPhone = normalizePhoneValue(phone);
     if (!normalizedPhone) {
-      Alert.alert('Thiếu số điện thoại', 'Vui lòng nhập số điện thoại hợp lệ.');
+      Alert.alert(t('missingPhone'), t('pleaseProvideValidPhone'));
       return;
     }
 
@@ -243,21 +292,21 @@ export default function UserProfileSettingsScreen() {
       });
       await Promise.all([refreshUser(), refreshFamily()]);
       setIsEditing(false);
-      Alert.alert(
-        'Thành công',
-        'Thông tin của bạn đã được cập nhật.',
-      );
+      Alert.alert(t('successMessage'), t('infoUpdated'));
     } catch (error) {
       Alert.alert(
-        'Không thể lưu',
-        error instanceof Error ? error.message : 'Đã có lỗi xảy ra',
+        t('failedToSave'),
+        error instanceof Error ? error.message : t('anErrorOccurred'),
       );
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleBirthdayChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
+  const handleBirthdayChange = (
+    _event: DateTimePickerEvent,
+    selectedDate?: Date,
+  ) => {
     setShowBirthdayPicker(false);
     if (!selectedDate) {
       return;
@@ -268,35 +317,74 @@ export default function UserProfileSettingsScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Icon name="arrow_back" size={26} color="#1E293B" />
+    <View style={[styles.root, { backgroundColor: themedColors.background }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 10,
+            backgroundColor: themedColors.background,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow_back" size={26} color={themedColors.onBackground} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thông tin tài khoản</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={handlePrimaryAction} disabled={isSaving}>
-          <Text style={styles.saveBtnText}>
-            {isSaving ? 'Đang lưu' : isEditing ? 'Lưu' : 'Sửa'}
+        <Text
+          style={[styles.headerTitle, { color: themedColors.onBackground }]}
+        >
+          {t('accountInfo')}
+        </Text>
+        <TouchableOpacity
+          style={styles.saveBtn}
+          onPress={handlePrimaryAction}
+          disabled={isSaving}
+        >
+          <Text style={[styles.saveBtnText, { color: themedColors.primary }]}>
+            {isSaving ? t('loading') : isEditing ? t('save') : t('edit')}
           </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: BOTTOM_NAV_HEIGHT + 40 }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: BOTTOM_NAV_HEIGHT + 40 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.avatarSection}>
           <View style={[styles.avatarContainer, shadows.md]}>
             <Image
-              source={{ uri: avatarUri || `https://i.pravatar.cc/150?u=${user?.id || '1'}` }}
+              source={{
+                uri:
+                  avatarUri || `https://i.pravatar.cc/150?u=${user?.id || '1'}`,
+              }}
               style={styles.avatar}
             />
-            <TouchableOpacity style={[styles.cameraBtn, !isEditing && styles.cameraBtnDisabled]} onPress={handleChoosePhoto}>
+            <TouchableOpacity
+              style={[styles.cameraBtn, !isEditing && styles.cameraBtnDisabled]}
+              onPress={handleChoosePhoto}
+            >
               <Icon name="photo_camera" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.userNameText}>{fullName}</Text>
-          <Text style={styles.userRoleText}>{memberRole}</Text>
+          <Text
+            style={[styles.userNameText, { color: themedColors.onBackground }]}
+          >
+            {fullName}
+          </Text>
+          <Text
+            style={[
+              styles.userRoleText,
+              { color: themedColors.onSurfaceVariant },
+            ]}
+          >
+            {memberRole}
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -305,34 +393,47 @@ export default function UserProfileSettingsScreen() {
             onPressIn={() => {
               void getCurrentUserProfile();
             }}
-            onPress={() => navigation.navigate('UserMedical', { memberId: user?.profileId })}
+            onPress={() =>
+              navigation.navigate('UserMedical', { memberId: user?.profileId })
+            }
           >
             <View style={styles.medicalIconWrap}>
               <Icon name="description" size={22} color="#fff" />
             </View>
             <View style={styles.medicalTextWrap}>
-              <Text style={styles.medicalTitle}>Hồ sơ y tế</Text>
-              <Text style={styles.medicalSub}>
-                Xem tiền sử, dị ứng và nhóm máu
-              </Text>
+              <Text style={styles.medicalTitle}>{t('medicalRecord')}</Text>
+              <Text style={styles.medicalSub}>{t('viewMedicalInfo')}</Text>
             </View>
             <Icon name="chevron_right" size={22} color="#CBD5E1" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Thông tin cá nhân</Text>
-          <View style={[styles.formCard, shadows.sm]}>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: themedColors.onSurfaceVariant },
+            ]}
+          >
+            {t('personalInfo')}
+          </Text>
+          <View
+            style={[
+              styles.formCard,
+              shadows.sm,
+              { backgroundColor: themedColors.surface },
+            ]}
+          >
             <InputField
               icon="person"
-              label="Họ và tên"
+              label={t('fullName')}
               value={fullName}
               onChangeText={setFullName}
               editable={isEditing}
             />
             <InputField
               icon="mail"
-              label="Email"
+              label={t('email')}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -340,7 +441,7 @@ export default function UserProfileSettingsScreen() {
             />
             <InputField
               icon="phone"
-              label="Số điện thoại"
+              label={t('phone')}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
@@ -348,11 +449,11 @@ export default function UserProfileSettingsScreen() {
             />
             <InputField
               icon="contact_phone"
-              label="Số điện thoại khẩn cấp"
+              label={t('emergencyPhone')}
               value={emergencyContactPhone}
               onChangeText={setEmergencyContactPhone}
               keyboardType="phone-pad"
-              placeholder="Để trống nếu chưa có"
+              placeholder={t('optionalField')}
               editable={isEditing}
             />
             <View style={styles.inputContainer}>
@@ -360,7 +461,7 @@ export default function UserProfileSettingsScreen() {
                 <Icon name="calendar_today" size={20} color={colors.primary} />
               </View>
               <View style={styles.inputContent}>
-                <Text style={styles.inputLabel}>Ngày sinh</Text>
+                <Text style={styles.inputLabel}>{t('dateOfBirth')}</Text>
                 <TouchableOpacity
                   activeOpacity={isEditing ? 0.75 : 1}
                   onPress={() => {
@@ -385,33 +486,75 @@ export default function UserProfileSettingsScreen() {
             </View>
             <SelectField
               icon="wc"
-              label="Giới tính"
+              label={t('gender')}
               value={gender}
               displayValue={formatGender(gender)}
               options={GENDER_OPTIONS}
               onChange={setGender}
               disabled={!isEditing}
             />
-            <SelectField
-              icon="bloodtype"
-              label="Nhóm máu"
-              value={bloodType}
-              displayValue={formatBloodType(bloodType)}
-              options={BLOOD_TYPE_OPTIONS}
-              onChange={setBloodType}
-              disabled={!isEditing}
+            <InputField
+              icon="height"
+              label={t('height')}
+              value={String(height)}
+              onChangeText={val => setHeight(Number(val) || 0)}
+              keyboardType="numeric"
+              editable={isEditing}
             />
+            <InputField
+              icon="fitness_center"
+              label={t('weight')}
+              value={String(weight)}
+              onChangeText={val => setWeight(Number(val) || 0)}
+              keyboardType="numeric"
+              editable={isEditing}
+            />
+
+            {bmiData && (
+              <View style={styles.bmiPreview}>
+                <View style={[styles.bmiBadge, { backgroundColor: bmiData.color }]}>
+                  <Text style={styles.bmiBadgeText}>BMI: {bmiData.value}</Text>
+                </View>
+                <Text style={[styles.bmiStatusLabel, { color: bmiData.color }]}>
+                  {bmiData.label}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Cài đặt thông báo</Text>
-          <View style={[styles.formCard, shadows.sm]}>
-            <View style={styles.settingsRow}>
-              <View style={[styles.rowIconWrap, { backgroundColor: '#F0F9FF' }]}>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: themedColors.onSurfaceVariant },
+            ]}
+          >
+            {t('notificationSettings')}
+          </Text>
+          <View
+            style={[
+              styles.formCard,
+              shadows.sm,
+              { backgroundColor: themedColors.surface },
+            ]}
+          >
+            <View
+              style={[
+                styles.settingsRow,
+                { borderBottomColor: themedColors.surfaceVariant },
+              ]}
+            >
+              <View
+                style={[styles.rowIconWrap, { backgroundColor: '#F0F9FF' }]}
+              >
                 <Icon name="medication" size={20} color="#0EA5E9" />
               </View>
-              <Text style={styles.rowLabelText}>Nhắc uống thuốc</Text>
+              <Text
+                style={[styles.rowLabelText, { color: themedColors.onSurface }]}
+              >
+                {t('medicineReminder')}
+              </Text>
               <Switch
                 value={medReminder}
                 onValueChange={setMedReminder}
@@ -419,11 +562,22 @@ export default function UserProfileSettingsScreen() {
                 thumbColor="#fff"
               />
             </View>
-            <View style={styles.settingsRow}>
-              <View style={[styles.rowIconWrap, { backgroundColor: '#FDF2F8' }]}>
+            <View
+              style={[
+                styles.settingsRow,
+                { borderBottomColor: themedColors.surfaceVariant },
+              ]}
+            >
+              <View
+                style={[styles.rowIconWrap, { backgroundColor: '#FDF2F8' }]}
+              >
                 <Icon name="calendar_month" size={20} color="#DB2777" />
               </View>
-              <Text style={styles.rowLabelText}>Nhắc lịch tái khám</Text>
+              <Text
+                style={[styles.rowLabelText, { color: themedColors.onSurface }]}
+              >
+                {t('appointmentReminder')}
+              </Text>
               <Switch
                 value={apptReminder}
                 onValueChange={setApptReminder}
@@ -435,49 +589,137 @@ export default function UserProfileSettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Ứng dụng</Text>
-          <View style={[styles.formCard, shadows.sm]}>
-            <TouchableOpacity style={styles.settingsRow}>
-              <View style={[styles.rowIconWrap, { backgroundColor: '#F5F3FF' }]}>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: themedColors.onSurfaceVariant },
+            ]}
+          >
+            {t('appSettings')}
+          </Text>
+          <View
+            style={[
+              styles.formCard,
+              shadows.sm,
+              { backgroundColor: themedColors.surface },
+            ]}
+          >
+            <TouchableOpacity
+              style={[styles.settingsRow, { borderBottomColor: 'transparent' }]}
+              onPress={() => navigation.navigate('LanguageSelection')}
+            >
+              <View
+                style={[styles.rowIconWrap, { backgroundColor: '#F5F3FF' }]}
+              >
                 <Icon name="language" size={20} color="#7C3AED" />
               </View>
-              <Text style={styles.rowLabelText}>Ngôn ngữ</Text>
-              <Text style={styles.rowValueText}>Tiếng Việt</Text>
-              <Icon name="chevron_right" size={20} color="#CBD5E1" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsRow}>
-              <View style={[styles.rowIconWrap, { backgroundColor: '#F0FDFA' }]}>
-                <Icon name="security" size={20} color="#0D9488" />
-              </View>
-              <Text style={styles.rowLabelText}>Chính sách bảo mật</Text>
-              <Icon name="chevron_right" size={20} color="#CBD5E1" />
+              <Text
+                style={[styles.rowLabelText, { color: themedColors.onSurface }]}
+              >
+                {t('language')}
+              </Text>
+              <Text
+                style={[
+                  styles.rowValueText,
+                  { color: themedColors.onSurfaceVariant },
+                ]}
+              >
+                {language === 'vi' ? t('vietnamese') : t('english')}
+              </Text>
+              <Icon
+                name="chevron_right"
+                size={20}
+                color={themedColors.outline}
+              />
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Hỗ trợ</Text>
-          <View style={[styles.formCard, shadows.sm]}>
-            <TouchableOpacity style={styles.settingsRow}>
-              <View style={[styles.rowIconWrap, { backgroundColor: '#FFF7ED' }]}>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: themedColors.onSurfaceVariant },
+            ]}
+          >
+            {t('support')}
+          </Text>
+          <View
+            style={[
+              styles.formCard,
+              shadows.sm,
+              { backgroundColor: themedColors.surface },
+            ]}
+          >
+            <TouchableOpacity
+              style={[
+                styles.settingsRow,
+                { borderBottomColor: themedColors.surfaceVariant },
+              ]}
+            >
+              <View
+                style={[styles.rowIconWrap, { backgroundColor: '#FFF7ED' }]}
+              >
                 <Icon name="help_center" size={20} color="#EA580C" />
               </View>
-              <Text style={styles.rowLabelText}>Trung tâm hỗ trợ</Text>
+              <Text
+                style={[styles.rowLabelText, { color: themedColors.onSurface }]}
+              >
+                {t('supportCenter')}
+              </Text>
               <Icon name="chevron_right" size={20} color="#CBD5E1" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsRow}>
-              <View style={[styles.rowIconWrap, { backgroundColor: '#EFF6FF' }]}>
+            <TouchableOpacity
+              style={[
+                styles.settingsRow,
+                { borderBottomColor: themedColors.surfaceVariant },
+              ]}
+            >
+              <View
+                style={[styles.rowIconWrap, { backgroundColor: '#EFF6FF' }]}
+              >
                 <Icon name="bug_report" size={20} color="#2563EB" />
               </View>
-              <Text style={styles.rowLabelText}>Báo cáo sự cố</Text>
+              <Text
+                style={[styles.rowLabelText, { color: themedColors.onSurface }]}
+              >
+                {t('reportBug')}
+              </Text>
+              <Icon name="chevron_right" size={20} color="#CBD5E1" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.settingsRow,
+                { borderBottomColor: 'transparent' },
+              ]}
+              onPress={() => navigation.navigate('Policy')}
+            >
+              <View
+                style={[styles.rowIconWrap, { backgroundColor: '#F0FDF4' }]}
+              >
+                <Icon name="policy" size={20} color="#22C55E" />
+              </View>
+              <Text
+                style={[styles.rowLabelText, { color: themedColors.onSurface }]}
+              >
+                {t('privacyPolicy')}
+              </Text>
               <Icon name="chevron_right" size={20} color="#CBD5E1" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => void logout()}>
+        <TouchableOpacity
+          style={[
+            styles.logoutBtn,
+            {
+              backgroundColor: '#FEF2F2',
+            },
+          ]}
+          onPress={() => void logout()}
+        >
           <Icon name="logout" size={22} color="#EF4444" />
-          <Text style={styles.logoutText}>Đăng xuất tài khoản</Text>
+          <Text style={styles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -552,7 +794,12 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginTop: 16,
   },
-  userRoleText: { fontSize: 14, fontFamily: 'Inter', color: '#64748B', marginTop: 4 },
+  userRoleText: {
+    fontSize: 14,
+    fontFamily: 'Inter',
+    color: '#64748B',
+    marginTop: 4,
+  },
   section: { marginBottom: 24 },
   sectionLabel: {
     fontSize: 14,
@@ -627,7 +874,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1E293B',
   },
-  rowValueText: { fontSize: 14, fontFamily: 'Inter', color: '#64748B', marginRight: 4 },
+  rowValueText: {
+    fontSize: 14,
+    fontFamily: 'Inter',
+    color: '#64748B',
+    marginRight: 4,
+  },
   medicalRecordBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -651,7 +903,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
   },
-  medicalSub: { fontSize: 12, fontFamily: 'Inter', color: '#64748B', marginTop: 2 },
+  medicalSub: {
+    fontSize: 12,
+    fontFamily: 'Inter',
+    color: '#64748B',
+    marginTop: 2,
+  },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -667,5 +924,29 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontWeight: '700',
     color: '#EF4444',
+  },
+  bmiPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#F8FAFC',
+    gap: 12,
+  },
+  bmiBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  bmiBadgeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '800',
+    fontFamily: 'Inter',
+  },
+  bmiStatusLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: 'Inter',
   },
 });

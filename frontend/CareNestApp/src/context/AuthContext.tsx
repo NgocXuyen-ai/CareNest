@@ -43,7 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    restoreSession();
+    restoreSession().catch(err => {
+      console.error('[AuthContext] restoreSession failed:', err);
+    });
   }, []);
 
   async function restoreSession() {
@@ -72,24 +74,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function refreshUser() {
-    const session = await getStoredSession();
-    if (!session) {
+    try {
+      const session = await getStoredSession();
+      if (!session) {
+        setUser(null);
+        setIsLoggedIn(false);
+        return;
+      }
+
+      const profile = await getCurrentUserProfile();
+      setUser(mapProfileToUser(profile, session.token));
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.error('[AuthContext] refreshUser failed:', error);
+      await setStoredSession(null);
       setUser(null);
       setIsLoggedIn(false);
-      return;
+      throw error;
     }
-
-    const profile = await getCurrentUserProfile();
-    setUser(mapProfileToUser(profile, session.token));
-    setIsLoggedIn(true);
   }
 
   async function login(email: string, password: string) {
-    const session = await loginRequest({ email, password });
-    await setStoredSession(session);
-    const profile = await getCurrentUserProfile();
-    setUser(mapProfileToUser(profile, session.token));
-    setIsLoggedIn(true);
+    try {
+      const session = await loginRequest({ email, password });
+      await setStoredSession(session);
+      const profile = await getCurrentUserProfile();
+      setUser(mapProfileToUser(profile, session.token));
+      setIsLoggedIn(true);
+    } catch (error) {
+      // Clean up on login failure
+      await setStoredSession(null);
+      setUser(null);
+      setIsLoggedIn(false);
+      throw error;
+    }
   }
 
   async function logout() {
@@ -108,7 +126,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, isOnboardingDone, login, logout, completeOnboarding, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        user,
+        isOnboardingDone,
+        login,
+        logout,
+        completeOnboarding,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

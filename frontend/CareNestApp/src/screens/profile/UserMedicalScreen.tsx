@@ -45,17 +45,18 @@ const HealthCard = ({ title, value, icon, bgColor, textColor, children }: any) =
   </View>
 );
 
-const StatItem = ({ label, value, unit, isBmi = false }: any) => (
-  <View style={[styles.statItem, isBmi && { flex: 1.3 }]}>
+const StatItem = ({ label, value, unit, isBmi = false, bmiData }: any) => (
+  <View style={[styles.statItem]}>
     <Text style={styles.statLabel}>{label}</Text>
     <View style={styles.statLine}>
       <Text style={styles.statValue}>{value}</Text>
       {unit ? <Text style={styles.statUnit}>{unit}</Text> : null}
-      {isBmi ? (
+      {isBmi && bmiData && bmiData.value !== '--' ? (
         <View style={styles.bmiMiniBar}>
           <View style={styles.bmiBarBg}>
-            <View style={[styles.bmiBarFill, { width: '60%' }]} />
+            <View style={[styles.bmiBarFill, { width: `${bmiData.percentage}%`, backgroundColor: bmiData.color }]} />
           </View>
+          <Text style={[styles.bmiLabel, { color: bmiData.color }]}>{bmiData.label}</Text>
         </View>
       ) : null}
     </View>
@@ -194,13 +195,31 @@ export default function UserMedicalScreen() {
 
     return 'Thành viên';
   }, [memberId, targetMember?.role]);
-  const bmi = useMemo(() => {
-    const height = Number(profile?.height || 0);
-    const weight = Number(profile?.weight || 0);
-    if (height <= 30 || weight <= 2) {
-      return '--';
+  const bmiData = useMemo(() => {
+    const h = Number(profile?.height || 0);
+    const w = Number(profile?.weight || 0);
+    if (h < 1 || w < 0.1) {
+      return { value: '--', label: '', color: '#CBD5E1', percentage: 0 };
     }
-    return (weight / ((height / 100) ** 2)).toFixed(1);
+    const val = w / (h / 100) ** 2;
+
+    let label = 'Bình thường';
+    let color = '#22C55E';
+    if (val < 18.5) {
+      label = 'Gầy';
+      color = '#3B82F6';
+    } else if (val >= 25 && val < 30) {
+      label = 'Thừa cân';
+      color = '#F59E0B';
+    } else if (val >= 30) {
+      label = 'Béo phì';
+      color = '#EF4444';
+    }
+
+    // Map BMI range [15, 35] to [0, 100] percentage for the bar
+    const percentage = Math.min(Math.max(((val - 15) / (35 - 15)) * 100, 5), 100);
+
+    return { value: val.toFixed(1), label, color, percentage };
   }, [profile?.height, profile?.weight]);
 
   const handleTabPress = (index: number) => {
@@ -303,7 +322,7 @@ export default function UserMedicalScreen() {
         <View style={styles.statsRow}>
           <StatItem label="CHIỀU CAO" value={profile?.height ?? '--'} unit="cm" />
           <StatItem label="CÂN NẶNG" value={profile?.weight ?? '--'} unit="kg" />
-          <StatItem label="BMI" value={bmi} isBmi />
+          <StatItem label="BMI" value={bmiData.value} isBmi bmiData={bmiData} />
         </View>
 
         <View style={styles.sectionHeader}>
@@ -609,7 +628,8 @@ const styles = StyleSheet.create({
   statUnit: { fontSize: 14, color: '#64748B', fontWeight: '600' },
   bmiMiniBar: { flex: 1, marginLeft: 10, alignSelf: 'center' },
   bmiBarBg: { height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden' },
-  bmiBarFill: { height: '100%', backgroundColor: '#3B82F6' },
+  bmiBarFill: { height: '100%', borderRadius: 3 },
+  bmiLabel: { fontSize: 10, fontWeight: '700', marginTop: 2, fontFamily: 'Inter' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: '#444', fontFamily: 'Inter' },
   historyList: { backgroundColor: '#F8FAFC', borderRadius: 24, padding: 8 },

@@ -99,6 +99,8 @@ const iconMap: Record<string, string> = {
   monitor_weight: 'scale-bathroom',
   show_chart: 'chart-line',
   notification_important: 'bell-alert',
+  track_changes: 'target',
+  policy: 'shield-account',
 };
 
 export function getIconName(materialSymbolName: string): string {

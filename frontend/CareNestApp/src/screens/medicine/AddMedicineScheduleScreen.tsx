@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/spacing';
 import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
@@ -20,15 +20,20 @@ import { useFamily } from '../../context/FamilyContext';
 import { useAuth } from '../../context/AuthContext';
 import { createMedicineSchedule, getScheduleFormData, type MedicineScheduleFormData } from '../../api/medicine';
 import { formatLocalDate } from '../../utils/dateTime';
+import type { MedicineStackParamList } from '../../navigation/navigationTypes';
 
 export default function AddMedicineScheduleScreen() {
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<MedicineStackParamList, 'AddMedicineSchedule'>>();
   const insets = useSafeAreaInsets();
   const { selectedProfileId } = useFamily();
   const { user } = useAuth();
+
+  const initialMedicineId = route.params?.medicineId;
+
   const [formData, setFormData] = useState<MedicineScheduleFormData | null>(null);
   const [selectedMember, setSelectedMember] = useState<number | null>(selectedProfileId || (user?.profileId ? Number(user.profileId) : null));
-  const [selectedMedicineId, setSelectedMedicineId] = useState<number | null>(null);
+  const [selectedMedicineId, setSelectedMedicineId] = useState<number | null>(initialMedicineId || null);
   const [dosage, setDosage] = useState('');
   const [frequency, setFrequency] = useState(2);
   const [startDate, setStartDate] = useState(formatLocalDate(new Date()));
@@ -39,7 +44,9 @@ export default function AddMedicineScheduleScreen() {
     void getScheduleFormData()
       .then(data => {
         setFormData(data);
-        if (data.medicines[0]) {
+        if (initialMedicineId) {
+          setSelectedMedicineId(initialMedicineId);
+        } else if (data.medicines[0]) {
           setSelectedMedicineId(data.medicines[0].medicineId);
         }
         if (!selectedMember && data.profiles[0]) {
@@ -47,7 +54,7 @@ export default function AddMedicineScheduleScreen() {
         }
       })
       .catch(() => setFormData(null));
-  }, []);
+  }, [initialMedicineId, selectedMember]);
 
   const selectedMedicine = useMemo(
     () => formData?.medicines.find(item => item.medicineId === selectedMedicineId) || null,
@@ -64,7 +71,7 @@ export default function AddMedicineScheduleScreen() {
       await createMedicineSchedule({
         profile: selectedMember,
         medicineId: selectedMedicine.medicineId,
-        medicineName: selectedMedicine.name,
+        medicineName: `${selectedMedicine.name} (${selectedMedicine.quantity} ${selectedMedicine.unit})`,
         dosage: dosage || '1 viên',
         frequency,
         note: notes,
@@ -132,8 +139,9 @@ export default function AddMedicineScheduleScreen() {
                     <Icon name="pill" size={18} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.medicineChoiceName}>{medicine.name}</Text>
-                    <Text style={styles.medicineChoiceMeta}>{medicine.quantity} {medicine.unit}</Text>
+                    <Text style={styles.medicineChoiceName}>
+                      {medicine.name} ({medicine.quantity} {medicine.unit})
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -209,10 +217,10 @@ const styles = StyleSheet.create({
   memberName: { fontSize: 13, fontFamily: 'Inter', fontWeight: '600', color: '#64748B' },
   memberNameActive: { color: colors.primary },
   whiteCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, gap: 16, ...shadows.sm },
-  medicineChoice: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  medicineChoice: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   medicineChoiceActive: { backgroundColor: '#EFF6FF', borderRadius: 16, paddingHorizontal: 12 },
-  medicineChoiceIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primaryFixed, alignItems: 'center', justifyContent: 'center' },
-  medicineChoiceName: { fontSize: 14, fontFamily: 'Inter', fontWeight: '700', color: colors.onSurface },
+  medicineChoiceIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primaryFixed, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  medicineChoiceName: { fontSize: 14, fontFamily: 'Inter', fontWeight: '700', color: colors.onSurface, lineHeight: 20 },
   medicineChoiceMeta: { fontSize: 12, fontFamily: 'Inter', color: colors.onSurfaceVariant },
   inputGroup: { gap: 8 },
   inputLabel: { fontSize: 10, fontFamily: 'Manrope', fontWeight: '800', color: '#1283DA', letterSpacing: 0.5 },

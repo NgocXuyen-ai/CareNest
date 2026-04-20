@@ -42,7 +42,7 @@ export type FamilyStackParamList = {
 export type MedicineStackParamList = {
   MedicineSchedule: undefined;
   MedicineCabinet: undefined;
-  AddMedicineSchedule: { editId?: string };
+  AddMedicineSchedule: { editId?: string; medicineId?: number };
   AddMedicineToCabinet: { editId?: string };
   OcrScanner: undefined;
   AppointmentList: undefined;
@@ -57,4 +57,6 @@ export type AiChatStackParamList = {
 export type ProfileStackParamList = {
   UserProfileSettings: undefined;
   UserMedical: { memberId?: string };
+  LanguageSelection: undefined;
+  Policy: undefined;
 };

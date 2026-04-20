@@ -9,18 +9,26 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  CompositeNavigationProp,
+} from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { shadows } from '../../theme/spacing';
 import { colors } from '../../theme/colors';
+import { useThemedColors } from '../../hooks/useThemedColors';
 import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
 import { CARENEST_LOGO_HOUSE } from '../../assets/branding';
 import Icon from '../../components/common/Icon';
 import Avatar from '../../components/common/Avatar';
 import NotificationBell from '../../components/common/NotificationBell';
-import type { HomeStackParamList, MainTabParamList } from '../../navigation/navigationTypes';
+import type {
+  HomeStackParamList,
+  MainTabParamList,
+} from '../../navigation/navigationTypes';
 import { useAuth } from '../../context/AuthContext';
 import { useFamily } from '../../context/FamilyContext';
 import { getDashboard, type DashboardPayload } from '../../api/dashboard';
@@ -144,7 +152,9 @@ function buildTasks(context?: ProfileContext): TaskCard[] {
       iconBg: '#F0FDF4',
       iconColor: '#16A34A',
       title: nextAppointment.title,
-      subtitle: new Date(nextAppointment.appointmentDate).toLocaleString('vi-VN'),
+      subtitle: new Date(nextAppointment.appointmentDate).toLocaleString(
+        'vi-VN',
+      ),
     });
   }
 
@@ -174,6 +184,7 @@ export default function HomeDashboardScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { members, selectedProfileId, setSelectedProfileId } = useFamily();
+  const themedColors = useThemedColors();
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
 
   const loadDashboard = useCallback(async () => {
@@ -209,7 +220,9 @@ export default function HomeDashboardScreen() {
     }
 
     if (dashboard.scopeType === 'FAMILY') {
-      return profileContexts.flatMap(context => buildTasks(context)).slice(0, 4);
+      return profileContexts
+        .flatMap(context => buildTasks(context))
+        .slice(0, 4);
     }
 
     return buildTasks(selectedProfileContext);
@@ -223,7 +236,10 @@ export default function HomeDashboardScreen() {
   const activeShortcutProfileId = Number(selectedProfileRouteId);
 
   const prefetchMedicineSchedule = useCallback(() => {
-    if (!Number.isFinite(activeShortcutProfileId) || activeShortcutProfileId <= 0) {
+    if (
+      !Number.isFinite(activeShortcutProfileId) ||
+      activeShortcutProfileId <= 0
+    ) {
       return;
     }
 
@@ -232,7 +248,10 @@ export default function HomeDashboardScreen() {
   }, [activeShortcutProfileId]);
 
   const prefetchAppointments = useCallback(() => {
-    if (!Number.isFinite(activeShortcutProfileId) || activeShortcutProfileId <= 0) {
+    if (
+      !Number.isFinite(activeShortcutProfileId) ||
+      activeShortcutProfileId <= 0
+    ) {
       return;
     }
 
@@ -240,7 +259,10 @@ export default function HomeDashboardScreen() {
   }, [activeShortcutProfileId]);
 
   const prefetchVaccinations = useCallback(() => {
-    if (!Number.isFinite(activeShortcutProfileId) || activeShortcutProfileId <= 0) {
+    if (
+      !Number.isFinite(activeShortcutProfileId) ||
+      activeShortcutProfileId <= 0
+    ) {
       return;
     }
 
@@ -248,17 +270,48 @@ export default function HomeDashboardScreen() {
   }, [activeShortcutProfileId]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <View
+      style={[styles.container, { backgroundColor: themedColors.background }]}
+    >
+      <StatusBar
+        barStyle={
+          themedColors.onBackground === '#181c1f'
+            ? 'dark-content'
+            : 'light-content'
+        }
+        backgroundColor={themedColors.background}
+      />
 
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 10,
+            backgroundColor: themedColors.background,
+          },
+        ]}
+      >
         <View style={styles.brandLeft}>
-          <Image source={CARENEST_LOGO_HOUSE} style={styles.brandGlyph} resizeMode="contain" />
-          <Text style={styles.logoText}>CareNest</Text>
+          <Image
+            source={CARENEST_LOGO_HOUSE}
+            style={styles.brandGlyph}
+            resizeMode="contain"
+          />
+          <Text style={[styles.logoText, { color: themedColors.onBackground }]}>
+            CareNest
+          </Text>
         </View>
         <View style={styles.headerActions}>
-          <Avatar uri={user?.avatarUrl} name={user?.fullName || 'CareNest'} size="sm" bordered />
-          <NotificationBell iconColor={colors.onSurfaceVariant} hasNotification={unreadCount > 0} />
+          <Avatar
+            uri={user?.avatarUrl}
+            name={user?.fullName || 'CareNest'}
+            size="sm"
+            bordered
+          />
+          <NotificationBell
+            iconColor={colors.onSurfaceVariant}
+            hasNotification={unreadCount > 0}
+          />
         </View>
       </View>
 
@@ -286,7 +339,10 @@ export default function HomeDashboardScreen() {
             contentContainerStyle={styles.memberList}
           >
             <TouchableOpacity
-              style={[styles.memberPill, selectedProfileId === null && styles.memberPillActive]}
+              style={[
+                styles.memberPill,
+                selectedProfileId === null && styles.memberPillActive,
+              ]}
               onPress={() => setSelectedProfileId(null)}
             >
               <Text
@@ -303,14 +359,16 @@ export default function HomeDashboardScreen() {
                 key={member.profileId}
                 style={[
                   styles.memberPill,
-                  selectedProfileId === member.profileId && styles.memberPillActive,
+                  selectedProfileId === member.profileId &&
+                    styles.memberPillActive,
                 ]}
                 onPress={() => setSelectedProfileId(member.profileId)}
               >
                 <Text
                   style={[
                     styles.memberPillText,
-                    selectedProfileId === member.profileId && styles.memberPillTextActive,
+                    selectedProfileId === member.profileId &&
+                      styles.memberPillTextActive,
                   ]}
                 >
                   {member.fullName.split(' ').pop()}
@@ -326,7 +384,9 @@ export default function HomeDashboardScreen() {
             onPressIn={prefetchMedicineSchedule}
             onPress={() => navigation.navigate('MedicineSchedule')}
           >
-            <View style={[styles.shortcutIconWrap, { backgroundColor: '#E0F2FE' }]}>
+            <View
+              style={[styles.shortcutIconWrap, { backgroundColor: '#E0F2FE' }]}
+            >
               <Icon name="pill" size={26} color="#0EA5E9" />
             </View>
             <Text style={styles.shortcutLabel}>Lịch thuốc</Text>
@@ -336,7 +396,9 @@ export default function HomeDashboardScreen() {
             onPressIn={prefetchAppointments}
             onPress={() => navigation.navigate('AppointmentList')}
           >
-            <View style={[styles.shortcutIconWrap, { backgroundColor: '#F3E8FF' }]}>
+            <View
+              style={[styles.shortcutIconWrap, { backgroundColor: '#F3E8FF' }]}
+            >
               <Icon name="calendar_month" size={26} color="#A855F7" />
             </View>
             <Text style={styles.shortcutLabel}>Lịch hẹn</Text>
@@ -345,10 +407,14 @@ export default function HomeDashboardScreen() {
             style={styles.shortcutCard}
             onPressIn={prefetchVaccinations}
             onPress={() =>
-              navigation.navigate('VaccinationTracker', { memberId: selectedProfileRouteId })
+              navigation.navigate('VaccinationTracker', {
+                memberId: selectedProfileRouteId,
+              })
             }
           >
-            <View style={[styles.shortcutIconWrap, { backgroundColor: '#E0F7FA' }]}>
+            <View
+              style={[styles.shortcutIconWrap, { backgroundColor: '#E0F7FA' }]}
+            >
               <Icon name="syringe" size={26} color="#0097A7" />
             </View>
             <Text style={styles.shortcutLabel}>Tiêm chủng</Text>
@@ -371,12 +437,11 @@ export default function HomeDashboardScreen() {
           <View style={styles.heroHeader}>
             <View>
               <Text style={styles.heroDate}>
-                {dashboard?.generatedAt || new Date().toLocaleDateString('vi-VN')}
+                {dashboard?.generatedAt ||
+                  new Date().toLocaleDateString('vi-VN')}
               </Text>
               <Text style={styles.heroStatus}>
-                {unreadCount > 0
-                  ? 'Có việc cần chú ý'
-                  : 'Mọi thứ đều ổn'}
+                {unreadCount > 0 ? 'Có việc cần chú ý' : 'Mọi thứ đều ổn'}
               </Text>
             </View>
             <Icon name="sunny" size={40} color="rgba(255,255,255,0.8)" />
@@ -431,21 +496,28 @@ export default function HomeDashboardScreen() {
 
           {tasks.length === 0 ? (
             <View style={styles.taskCard}>
-              <View style={[styles.taskIconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <View
+                style={[styles.taskIconWrap, { backgroundColor: '#EFF6FF' }]}
+              >
                 <Icon name="check_circle" size={24} color="#2563EB" />
               </View>
               <View style={styles.taskInfo}>
                 <Text style={styles.taskTitle}>Chưa có việc nào cần xử lý</Text>
                 <Text style={styles.taskTime}>
-                  Dashboard sẽ tự cập nhật khi có lịch thuốc, khám
-                  hoặc tiêm chủng.
+                  Dashboard sẽ tự cập nhật khi có lịch thuốc, khám hoặc tiêm
+                  chủng.
                 </Text>
               </View>
             </View>
           ) : (
             tasks.map(task => (
               <View key={task.id} style={styles.taskCard}>
-                <View style={[styles.taskIconWrap, { backgroundColor: task.iconBg }]}>
+                <View
+                  style={[
+                    styles.taskIconWrap,
+                    { backgroundColor: task.iconBg },
+                  ]}
+                >
                   <Icon name={task.icon} size={24} color={task.iconColor} />
                 </View>
                 <View style={styles.taskInfo}>
@@ -467,15 +539,15 @@ export default function HomeDashboardScreen() {
         <View style={[styles.aiAdvisorCard, { backgroundColor: '#E1F5FE' }]}>
           <View style={styles.aiHeader}>
             <View style={styles.aiAvatar}>
-              <Image source={CARENEST_LOGO_HOUSE} style={styles.aiAvatarIcon} resizeMode="contain" />
+              <Image
+                source={CARENEST_LOGO_HOUSE}
+                style={styles.aiAvatarIcon}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.aiLabel}>AI CỐ VẤN</Text>
           </View>
-          <Text style={styles.aiAdviceText}>
-            "
-            {aiSummaryText}
-            "
-          </Text>
+          <Text style={styles.aiAdviceText}>"{aiSummaryText}"</Text>
         </View>
       </ScrollView>
     </View>

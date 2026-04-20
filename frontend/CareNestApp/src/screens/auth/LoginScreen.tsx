@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
+import { useThemedColors } from '../../hooks/useThemedColors';
 import { colors } from '../../theme/colors';
 import Input from '../../components/common/Input';
 import Icon from '../../components/common/Icon';
@@ -26,6 +27,7 @@ export default function LoginScreen() {
   const navigation = useNavigation<Nav>();
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
+  const themedColors = useThemedColors();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +39,10 @@ export default function LoginScreen() {
     try {
       await login(email, password);
     } catch (error) {
-      Alert.alert('Không thể đăng nhập', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+      Alert.alert(
+        'Không thể đăng nhập',
+        error instanceof Error ? error.message : 'Đã có lỗi xảy ra',
+      );
     } finally {
       setLoading(false);
     }
@@ -45,12 +50,15 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: themedColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        style={styles.flex}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 }]}
+        style={[styles.flex, { backgroundColor: themedColors.background }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -60,7 +68,11 @@ export default function LoginScreen() {
 
         {/* Logo */}
         <View style={styles.logoSection}>
-          <Image source={CARENEST_LOGO_FULL} style={styles.fullLogo} resizeMode="contain" />
+          <Image
+            source={CARENEST_LOGO_FULL}
+            style={styles.fullLogo}
+            resizeMode="contain"
+          />
           <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
         </View>
 
@@ -106,7 +118,9 @@ export default function LoginScreen() {
             disabled={loading}
             activeOpacity={0.85}
           >
-            <Text style={styles.loginBtnText}>{loading ? 'Đang đăng nhập...' : 'Đăng nhập'}</Text>
+            <Text style={styles.loginBtnText}>
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            </Text>
           </TouchableOpacity>
 
           {/* Divider */}
@@ -208,7 +222,11 @@ const styles = StyleSheet.create({
     color: colors.onPrimary,
   },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.outlineVariant + '40' },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.outlineVariant + '40',
+  },
   dividerText: {
     fontSize: 11,
     fontFamily: 'Inter',
@@ -241,7 +259,11 @@ const styles = StyleSheet.create({
     color: colors.onSurface,
   },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
-  footerText: { fontSize: 14, fontFamily: 'Inter', color: colors.onSurfaceVariant },
+  footerText: {
+    fontSize: 14,
+    fontFamily: 'Inter',
+    color: colors.onSurfaceVariant,
+  },
   footerLink: {
     fontSize: 14,
     fontFamily: 'Inter',
