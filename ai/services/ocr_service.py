@@ -2,7 +2,7 @@ import json
 import logging
 import re
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
@@ -30,6 +30,30 @@ def _get_llm_vision() -> ChatAnthropic:
             max_retries=settings.LLM_MAX_RETRIES,
         )
     return _llm_vision
+
+
+def _content_to_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content.strip()
+
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+                continue
+            if isinstance(item, dict):
+                text = item.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+                    continue
+
+            text_attr = getattr(item, "text", None)
+            if isinstance(text_attr, str):
+                parts.append(text_attr)
+        return "\n".join(parts).strip()
+
+    return str(content).strip()
 
 
 def _parse_ocr_response(raw: str) -> OcrStructuredData:
@@ -77,7 +101,7 @@ def process_ocr(request: OcrRequest) -> OcrResponse:
 
     try:
         response = llm.invoke([message])
-        raw_text = response.content
+        raw_text = _content_to_text(response.content)
     except Exception as e:
         logger.error(f"OCR LLM call failed: {e}")
         execution_time = time.time() - start_time
