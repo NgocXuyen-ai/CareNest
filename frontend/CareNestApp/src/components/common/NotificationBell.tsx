@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from './Icon';
+import { colors } from '../../theme/colors';
 
 interface NotificationBellProps {
   size?: number;
@@ -11,8 +12,8 @@ interface NotificationBellProps {
 
 export default function NotificationBell({ 
   size = 26, 
-  iconColor = '#1E3A8A', 
-  hasNotification = true 
+  iconColor = colors.onSurfaceVariant,
+  hasNotification = false,
 }: NotificationBellProps) {
   const navigation = useNavigation<any>();
 
@@ -42,8 +43,8 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#EF4444', // Màu đỏ nổi bật cho thông báo
+    backgroundColor: colors.error,
     borderWidth: 1.5,
-    borderColor: '#fff',
+    borderColor: colors.surface,
   },
 });
