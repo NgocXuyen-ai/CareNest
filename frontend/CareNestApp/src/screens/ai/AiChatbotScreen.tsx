@@ -87,7 +87,7 @@ const MessageBubble = memo(function MessageBubble({
             disabled={isTtsLoading}
           >
             <MaterialCommunityIcons
-              name={isTtsLoading ? 'loading' : isSpeaking ? 'volume-high' : 'volume-medium-outline'}
+              name={isTtsLoading ? 'timer-sand' : isSpeaking ? 'volume-high' : 'volume-medium'}
               size={16}
               color={isSpeaking ? '#1a73e8' : '#94a3b8'}
             />

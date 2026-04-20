@@ -379,41 +379,6 @@ Hãy gọi một route tool ngay với:
 """
 
 
-def build_pre_route_guard_prompt(
-    route: str,
-    route_reason: str,
-    message: str,
-    context: Optional[dict[str, Any]],
-) -> str:
-    return f"""Bạn là lớp kiểm tra an toàn trước khi thực thi.
-Hãy quyết định route đã chọn có an toàn và phù hợp hay không.
-Chỉ trả JSON:
-{{
-  "allow": true,
-  "normalized_route": "small_talk|context_answer|text_to_sql|clarify|refuse",
-  "reason": "giải thích ngắn",
-  "risk_level": "low|medium|high"
-}}
-
-Chính sách guard:
-- Nếu bằng chứng chưa đủ hoặc scope còn mơ hồ, đặt allow=false và normalized_route=clarify.
-- Nếu yêu cầu liên quan dữ liệu nhạy cảm/hành vi gây hại, đặt allow=false và normalized_route=refuse.
-- Nếu route có thể chạy an toàn, đặt allow=true.
-- Bạn là nơi ra quyết định chính cho việc có nên giữ route hiện tại hay đổi route khác.
-- Không mặc định chặn câu hỏi dữ liệu hợp lệ chỉ vì câu hỏi rộng; nếu có thể trả lời an toàn bằng context hoặc SQL thì ưu tiên cho phép.
-- Với câu hỏi về gia đình/thành viên, nếu context đã có family.members thì ưu tiên normalized_route=context_answer và allow=true.
-- Với câu hỏi dữ liệu sức khỏe/gia đình hợp lệ, chỉ normalized_route=clarify khi thiếu dữ kiện thật sự khiến câu trả lời có thể sai scope.
-- Không dựa vào sự dè dặt chung chung; hãy dựa vào intent thực tế, context hiện có, và mức độ an toàn của dữ liệu cần truy cập.
-- Hãy coi các nhóm câu hỏi trong schema coverage là câu hỏi hợp lệ mặc định, không phải câu hỏi bất thường.
-
-Đầu vào:
-- route: {route}
-- route_reason: {route_reason}
-- message: {message}
-- context_present: {bool(context)}
-"""
-
-
 def build_small_talk_prompt(message: str, history: list[dict[str, Any]]) -> str:
     history_text = _safe_json(history[-4:])
     return f"""Bạn là trợ lý AI CareNest.
@@ -441,18 +406,17 @@ def build_context_answer_prompt(
     context_text = _safe_json(_trim_context(context))
     history_text = _safe_json(history[-6:])
     return f"""Bạn là trợ lý AI CareNest.
-Chỉ được trả lời dựa trên context đã cung cấp.
+Nhiệm vụ: trả lời câu hỏi của người dùng từ context đã cung cấp, đồng thời tự kiểm tra chất lượng câu trả lời.
+
 Quy tắc:
-- Không sinh SQL.
-- Không nhắc tới database hay công cụ nội bộ.
-- Nếu context chưa đủ, hỏi lại đúng một câu làm rõ, ngắn gọn.
+- Không sinh SQL, không nhắc tới database hay công cụ nội bộ.
 - Trả lời bằng tiếng Việt tự nhiên, dễ hiểu.
 - Không bịa thông tin không có trong context.
-- Nếu người dùng hỏi "mới nhất/kế tiếp", ưu tiên thông tin có timestamp rõ ràng trong context.
-- Nếu dữ liệu giữa các phần context mâu thuẫn, nêu rõ chưa chắc chắn và yêu cầu làm rõ.
-- Nếu context có family.members và câu hỏi liên quan gia đình/thành viên, ưu tiên trả lời trực tiếp từ family.members.
-- Nếu family.memberCount > 0 hoặc family.members không rỗng, không được nói là "không có thông tin về gia đình".
-- Khi hỏi về thành viên gia đình, hãy liệt kê theo tên, vai trò, tuổi, tình trạng sức khỏe nếu các trường đó có mặt.
+- Nếu context có family.members, ưu tiên trả lời từ đó; không nói "không có thông tin về gia đình" khi memberCount > 0.
+- Khi hỏi về thành viên gia đình, liệt kê tên, vai trò, tuổi, tình trạng sức khỏe nếu có.
+- Nếu selectedProfileId có trong context, ưu tiên hồ sơ đó khi câu hỏi hỏi về "tôi" hay hồ sơ hiện tại.
+- Nếu context không đủ để trả lời đúng intent (cần dữ liệu lịch sử, thống kê, tủ thuốc, tiêm chủng, lịch khám...) thì đặt action=fallback_to_sql.
+- Chỉ đặt action=fallback_to_sql khi context thật sự thiếu dữ liệu cần thiết.
 
 {_CONTEXT_ANSWER_FEWSHOT}
 
@@ -464,6 +428,13 @@ Lịch sử gần đây:
 
 Người dùng:
 {message}
+
+Chỉ trả JSON (không thêm text bên ngoài):
+{{
+  "action": "answer|fallback_to_sql",
+  "reply": "câu trả lời tiếng Việt (null nếu action=fallback_to_sql)",
+  "reason": "lý do ngắn gọn"
+}}
 """
 
 
@@ -489,52 +460,27 @@ Yêu cầu bắt buộc:
 Các nhóm câu hỏi dữ liệu hợp lệ theo schema:
 {_SQL_CAPABILITY_COVERAGE}
 
-Chỉ trả JSON:
+Chỉ trả JSON (không thêm text bên ngoài):
 {{
   "action": "generate_sql|ask_clarification|reject",
   "sql": "string or null",
   "clarification_question": "string or null",
-  "reason": "string"
+  "reason": "string",
+  "tenant_scope_ok": true,
+  "read_only_ok": true,
+  "sensitive_data_ok": true
 }}
+
+Giải thích các trường xác minh (điền true/false):
+- tenant_scope_ok: SQL có lọc đúng user_id = {user_id} không
+- read_only_ok: SQL có phải chỉ là SELECT không (không có INSERT/UPDATE/DELETE)
+- sensitive_data_ok: SQL có tránh truy vấn password_hash, secret, token không
 
 Ngữ cảnh người dùng (đã gồm lịch sử liên quan):
 {contextual_message}
 
 Tin nhắn người dùng hiện tại:
 {message}
-"""
-
-
-def build_sql_guard_prompt(user_id: int, message: str, sql: str) -> str:
-    return f"""Bạn là lớp kiểm tra an toàn SQL cho CareNest.
-Hãy rà soát SQL và chỉ trả JSON:
-{{
-  "verdict": "allow|clarify|reject",
-  "reason": "lý do ngắn",
-  "tenant_scope_ok": true,
-  "read_only_ok": true,
-  "sensitive_data_ok": true,
-  "revised_sql": "string or null",
-  "clarification_question": "string or null"
-}}
-
-Quy tắc:
-- SQL phải là truy vấn chỉ đọc.
-- SQL phải có tenant scope theo user_id = {user_id}.
-- SQL không được lộ password_hash hoặc secret/token/api key.
-- Nếu SQL gần đúng, hãy sửa bằng revised_sql và verdict=allow.
-- Từ chối SQL nhiều câu lệnh.
-- Từ chối SQL thiếu điều kiện tenant.
-- Khi intent còn thiếu rõ ràng thật sự, ưu tiên clarify hơn allow.
-- Không chặn quá mức với các câu hỏi dữ liệu gia đình/sức khỏe hợp lệ nếu SQL đã scope tenant đúng và chỉ đọc.
-- Với câu hỏi tổng hợp hoặc mô tả rộng, vẫn có thể allow nếu SQL an toàn và trả về dữ liệu phù hợp intent.
-- reason phải ngắn, cụ thể, có thể hành động được.
-
-Tin nhắn người dùng:
-{message}
-
-SQL đề xuất:
-{sql}
 """
 
 
@@ -595,39 +541,5 @@ Rows (nếu có):
 {rows_text}
 
 Bản nháp câu trả lời:
-{draft_reply}
-"""
-
-
-def build_context_answer_guard_prompt(
-    message: str,
-    draft_reply: str,
-    context: Optional[dict[str, Any]],
-) -> str:
-    context_text = _safe_json(_trim_context(context))
-    return f"""Bạn là lớp rà soát cuối cho câu trả lời dựa trên context.
-Hãy kiểm tra xem bản nháp có bỏ sót dữ liệu đã có trong context hay không, rồi chỉ trả JSON:
-{{
-  "approved": true,
-  "action": "keep_answer|fallback_to_sql",
-  "final_reply": "string",
-  "reason": "lý do ngắn"
-}}
-
-Quy tắc:
-- Nếu context đã có dữ liệu gia đình hoặc danh sách hồ sơ, không được trả lời theo kiểu "không có thông tin" nếu vẫn có thể trả lời hữu ích.
-- Với câu hỏi về gia đình/thành viên, ưu tiên dùng family.members; nếu family.members trống nhưng profiles có dữ liệu liên quan, có thể trả lời từ profiles.
-- Nếu context chưa đủ nhưng câu hỏi rõ ràng thuộc nhóm dữ liệu có thể truy từ schema SQL, đặt action=fallback_to_sql.
-- Chỉ giữ action=keep_answer khi bản nháp đã hữu ích và bám chắc vào context.
-- Không bịa thông tin ngoài context.
-- Trả lời bằng tiếng Việt có dấu, ngắn gọn, rõ ràng.
-
-Tin nhắn người dùng:
-{message}
-
-Context:
-{context_text}
-
-Bản nháp:
 {draft_reply}
 """
