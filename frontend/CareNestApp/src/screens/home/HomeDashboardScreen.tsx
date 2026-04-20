@@ -14,10 +14,12 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { shadows } from '../../theme/spacing';
+import { colors } from '../../theme/colors';
 import { BOTTOM_NAV_HEIGHT } from '../../utils/constants';
 import { CARENEST_LOGO_HOUSE } from '../../assets/branding';
 import Icon from '../../components/common/Icon';
 import Avatar from '../../components/common/Avatar';
+import NotificationBell from '../../components/common/NotificationBell';
 import type { HomeStackParamList, MainTabParamList } from '../../navigation/navigationTypes';
 import { useAuth } from '../../context/AuthContext';
 import { useFamily } from '../../context/FamilyContext';
@@ -254,7 +256,10 @@ export default function HomeDashboardScreen() {
           <Image source={CARENEST_LOGO_HOUSE} style={styles.brandGlyph} resizeMode="contain" />
           <Text style={styles.logoText}>CareNest</Text>
         </View>
-        <Avatar uri={user?.avatarUrl} name={user?.fullName || 'CareNest'} size="sm" bordered />
+        <View style={styles.headerActions}>
+          <Avatar uri={user?.avatarUrl} name={user?.fullName || 'CareNest'} size="sm" bordered />
+          <NotificationBell iconColor={colors.onSurfaceVariant} hasNotification={unreadCount > 0} />
+        </View>
       </View>
 
       <ScrollView
@@ -487,6 +492,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   brandLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandGlyph: { width: 22, height: 22 },
   logoText: {
     fontSize: 22,

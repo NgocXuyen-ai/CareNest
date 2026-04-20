@@ -12,8 +12,20 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     INTERNAL_SHARED_TOKEN: str = ""
 
+    # Voice provider (Azure OpenAI speech)
+    VOICE_PROVIDER: str = "azure"
+    AZURE_STT_ENDPOINT: str = ""
+    AZURE_STT_API_KEY: str = ""
+    AZURE_STT_DEPLOYMENT: str = ""
+    AZURE_STT_API_VERSION: str = "2025-03-01-preview"
+    AZURE_TTS_ENDPOINT: str = ""
+    AZURE_TTS_API_KEY: str = ""
+    AZURE_TTS_DEPLOYMENT: str = ""
+    AZURE_TTS_API_VERSION: str = "2025-03-01-preview"
+    AZURE_TTS_VOICE: str = "alloy"
+
     # LLM
-    LLM_TIMEOUT: int = 30
+    LLM_TIMEOUT: int = 300
     LLM_MAX_RETRIES: int = 2
 
     # Database
@@ -24,6 +36,13 @@ class Settings(BaseSettings):
     RATE_LIMIT_OCR: str = "5/minute"
     RATE_LIMIT_VOICE: str = "10/minute"
     RATE_LIMIT_DEFAULT: str = "30/minute"
+
+    # AI logging / tracing
+    AI_LOG_LEVEL: str = "INFO"
+    AI_TRACE_ENABLED: bool = True
+    AI_TRACE_LOG_PROMPTS: bool = False
+    AI_TRACE_MAX_PREVIEW_CHARS: int = 800
+    AI_TRACE_PRINT_STDOUT: bool = True
 
     model_config = SettingsConfigDict(
         env_file=(

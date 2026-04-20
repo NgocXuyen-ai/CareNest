@@ -12,7 +12,7 @@ export interface ApiEnvelope<T> {
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 300000,
 });
 
 const DEFAULT_GET_CACHE_TTL_MS = 20000;
