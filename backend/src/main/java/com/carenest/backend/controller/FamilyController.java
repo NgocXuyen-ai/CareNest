@@ -9,6 +9,7 @@ import com.carenest.backend.dto.family.JoinFamilyByCodeRequest;
 import com.carenest.backend.dto.family.MyFamilyResponse;
 import com.carenest.backend.dto.family.ReceivedInvitationResponse;
 import com.carenest.backend.dto.family.SentInvitationResponse;
+import com.carenest.backend.dto.family.UpdateFamilyMemberRoleRequest;
 import com.carenest.backend.dto.profile.CreateHealthProfileRequest;
 import com.carenest.backend.dto.profile.ProfileDetailsResponse;
 import com.carenest.backend.dto.profile.UpdateHealthProfileRequest;
@@ -150,6 +151,20 @@ public class FamilyController {
         return ApiResponse.success("OK", "Xóa thành viên khỏi gia đình thành công");
     }
 
+    @PutMapping("/members/{profileId}/role")
+    public ResponseEntity<ApiResponse<MyFamilyResponse>> updateMemberRole(
+            @PathVariable Integer profileId,
+            @Valid @RequestBody UpdateFamilyMemberRoleRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        MyFamilyResponse response = familyService.updateMemberRole(
+                ((CustomUserDetails) userDetails).getId(),
+                profileId,
+                request.getRole()
+        );
+        return ApiResponse.success(response, "Cập nhật vai trò thành viên thành công");
+    }
+
     @GetMapping("/join-code")
     public ResponseEntity<ApiResponse<FamilyJoinCodeResponse>> getJoinCode(
             @AuthenticationPrincipal UserDetails userDetails
@@ -178,9 +193,10 @@ public class FamilyController {
     @PostMapping(value = "/join-by-qr", consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<MyFamilyResponse>> joinByQr(
             @RequestPart("image") MultipartFile image,
+            @RequestPart(value = "role", required = false) String role,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        MyFamilyResponse response = familyService.joinByQr(((CustomUserDetails) userDetails).getId(), image);
+        MyFamilyResponse response = familyService.joinByQr(((CustomUserDetails) userDetails).getId(), image, role);
         return ApiResponse.success(response, "Quét QR và tham gia gia đình thành công");
     }
 }

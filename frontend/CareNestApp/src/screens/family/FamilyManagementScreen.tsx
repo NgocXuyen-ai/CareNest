@@ -26,6 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import FAB from '../../components/common/FAB';
 import {
   acceptInvitation,
+  type FamilyRole,
   getFamilyJoinCode,
   getReceivedInvitations,
   getSentInvitations,
@@ -43,8 +44,19 @@ import { getGrowthSummary } from '../../api/growth';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const RELATIONS = ['Bố', 'Mẹ', 'Anh', 'Chị', 'Em', 'Khác'] as const;
+const JOIN_ROLE_OPTIONS = [
+  { label: 'Thành viên', value: 'MEMBER', icon: 'account' },
+  { label: 'Bố', value: 'FATHER', icon: 'human-male' },
+  { label: 'Mẹ', value: 'MOTHER', icon: 'human-female' },
+  { label: 'Anh', value: 'OLDER_BROTHER', icon: 'face-man' },
+  { label: 'Chị', value: 'OLDER_SISTER', icon: 'face-woman' },
+  { label: 'Em', value: 'YOUNGER', icon: 'human-child' },
+  { label: 'Người thân', value: 'OTHER', icon: 'account-heart' },
+] as const;
 
-function mapRelationToRole(relation: string) {
+type JoinRoleValue = (typeof JOIN_ROLE_OPTIONS)[number]['value'];
+
+function mapRelationToRole(relation: string): FamilyRole {
   switch (relation) {
     case 'Bố':
       return 'FATHER';
@@ -100,7 +112,7 @@ function formatInvitationStatus(status?: string) {
 export default function FamilyManagementScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { hasFamily, familyName, createFamily, members, refreshFamily } = useFamily();
+  const { hasFamily, family, familyName, createFamily, members, refreshFamily } = useFamily();
   const { user } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -111,6 +123,7 @@ export default function FamilyManagementScreen() {
     useState<(typeof RELATIONS)[number]>('Mẹ');
   const [inviteValue, setInviteValue] = useState('');
   const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [selectedJoinRole, setSelectedJoinRole] = useState<JoinRoleValue>('MEMBER');
   const [receivedInvitations, setReceivedInvitations] = useState<FamilyInvitationItem[]>([]);
   const [sentInvitations, setSentInvitations] = useState<FamilyInvitationItem[]>([]);
   const [joinCodeInfo, setJoinCodeInfo] = useState<FamilyJoinCodeResponse | null>(null);
@@ -120,7 +133,9 @@ export default function FamilyManagementScreen() {
     () => members.find(member => String(member.profileId) === user?.profileId),
     [members, user?.profileId],
   );
-  const isOwner = myMember?.role === 'OWNER';
+  const isOwner = family?.ownerUserId
+    ? family.ownerUserId === user?.userId
+    : myMember?.role === 'OWNER';
 
   const prefetchMemberMedical = (profileId: number) => {
     void getFamilyProfile(profileId);
@@ -319,9 +334,10 @@ export default function FamilyManagementScreen() {
 
     try {
       setIsBusy(true);
-      await joinFamilyByCode(code);
+      await joinFamilyByCode(code, selectedJoinRole);
       await refreshFamily();
       setJoinCodeInput('');
+      setSelectedJoinRole('MEMBER');
       Alert.alert(
         'Tham gia thành công',
         'Bạn đã được thêm vào gia đình.',
@@ -372,8 +388,10 @@ export default function FamilyManagementScreen() {
         name: asset.fileName || 'family-qr.jpg',
         type: asset.type || 'image/jpeg',
       } as never);
+      formData.append('role', selectedJoinRole);
       await joinFamilyByQr(formData);
       await refreshFamily();
+      setSelectedJoinRole('MEMBER');
       Alert.alert(
         'Tham gia thành công',
         'Bạn đã quét QR và tham gia gia đình.',
@@ -682,6 +700,34 @@ export default function FamilyManagementScreen() {
                 autoCapitalize="characters"
               />
             </View>
+
+            <Text style={styles.relationLabel}>VAI TRÒ CỦA BẠN</Text>
+            <View style={styles.joinRoleWrap}>
+              {JOIN_ROLE_OPTIONS.map(option => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.joinRoleChip,
+                    selectedJoinRole === option.value && styles.joinRoleChipSelected,
+                  ]}
+                  onPress={() => setSelectedJoinRole(option.value)}
+                >
+                  <MaterialCommunityIcons
+                    name={option.icon}
+                    size={17}
+                    color={selectedJoinRole === option.value ? '#0369a1' : '#64748b'}
+                  />
+                  <Text
+                    style={[
+                      styles.joinRoleChipText,
+                      selectedJoinRole === option.value && styles.joinRoleChipTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
           <TouchableOpacity
             style={[styles.joinSubmitBtn, isBusy && styles.disabledBtn]}
@@ -865,7 +911,7 @@ export default function FamilyManagementScreen() {
         <View style={styles.memberList}>
           {members.map(member => {
             const age = member.age ?? 0;
-            const isChild = age > 0 && age < 20;
+            const isUnder18 = typeof member.age === 'number' && member.age < 18;
 
             return (
               <View key={member.profileId} style={styles.memberCard}>
@@ -899,11 +945,13 @@ export default function FamilyManagementScreen() {
                         <Text style={styles.roleTagText}>{formatRole(member.role)}</Text>
                       </View>
                     </View>
-                    <Text style={styles.memberAge}>{age || '--'} Tuổi</Text>
+                    <View style={styles.memberMetaRow}>
+                      <Text style={styles.memberAge}>{age || '--'} Tuổi</Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
 
-                {isChild ? (
+                {isUnder18 ? (
                   <TouchableOpacity
                     style={styles.growthBar}
                     onPressIn={() => prefetchMemberGrowth(member.profileId)}
@@ -1169,6 +1217,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   roleTagText: { fontSize: 11, fontWeight: '800', color: '#64748b' },
+  memberMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 10 },
   memberAge: { fontSize: 14, color: '#64748b', fontWeight: '600' },
   growthBar: {
     flexDirection: 'row',
@@ -1245,6 +1294,24 @@ const styles = StyleSheet.create({
   relationItemSelected: { borderColor: '#1a73e8', backgroundColor: '#eff6ff' },
   relationText: { fontSize: 14, fontWeight: '700', color: '#64748b', marginTop: 8 },
   relationTextSelected: { color: '#0369a1' },
+  joinRoleWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  joinRoleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  joinRoleChipSelected: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#1a73e8',
+  },
+  joinRoleChipText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
+  joinRoleChipTextSelected: { color: '#0369a1' },
   joinSubmitBtn: {
     width: '100%',
     height: 60,
