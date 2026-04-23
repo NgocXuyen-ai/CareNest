@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
   Alert,
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Pressable,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -13,6 +14,7 @@ import Icon from '../../components/common/Icon';
 import TopAppBar from '../../components/layout/TopAppBar';
 import Input from '../../components/common/Input';
 import { createCabinetMedicine } from '../../api/medicine';
+import { formatLocalDate } from '../../utils/dateTime';
 
 export default function AddMedicineToCabinetScreen() {
   const navigation = useNavigation<any>();
@@ -21,6 +23,14 @@ export default function AddMedicineToCabinetScreen() {
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('viên');
   const [expiryDate, setExpiryDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const onDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setExpiryDate(formatLocalDate(selectedDate));
+    }
+  };
 
   const UNITS = ['viên', 'gói', 'chai', 'tuýp', 'hộp'];
   const canSubmit = name.trim().length > 0 && expiryDate.trim().length > 0;
@@ -110,13 +120,27 @@ export default function AddMedicineToCabinetScreen() {
                 ))}
               </View>
             </View>
-            <Input
-              label="Hạn sử dụng *"
-              value={expiryDate}
-              onChangeText={setExpiryDate}
-              placeholder="YYYY-MM-DD"
-              leftIcon={<Icon name="calendar_today" size={18} color={colors.outline} />}
-            />
+            <Pressable onPress={() => setShowDatePicker(true)}>
+              <View pointerEvents="none">
+                <Input
+                  label="Hạn sử dụng *"
+                  value={expiryDate}
+                  editable={false}
+                  placeholder="YYYY-MM-DD"
+                  leftIcon={<Icon name="calendar_today" size={18} color={colors.outline} />}
+                />
+              </View>
+            </Pressable>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={expiryDate ? new Date(expiryDate) : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onDateChange}
+                minimumDate={new Date()}
+              />
+            )}
           </View>
 
           {/* Submit */}

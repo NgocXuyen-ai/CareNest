@@ -8,6 +8,7 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  Policy: undefined;
 };
 
 export type MainTabParamList = {
@@ -60,4 +61,11 @@ export type AiChatStackParamList = {
 export type ProfileStackParamList = {
   UserProfileSettings: undefined;
   UserMedical: { memberId?: string };
+  Policy: undefined;
+  MedicineSchedule: { memberId?: string } | undefined;
+  AddMedicineSchedule: { editId?: string; memberId?: string } | undefined;
+  AppointmentList: { memberId?: string } | undefined;
+  AddAppointment: { editId?: string; memberId?: string } | undefined;
+  VaccinationTracker: { memberId: string };
+  GrowthTracker: { memberId: string };
 };

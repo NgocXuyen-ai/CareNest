@@ -95,8 +95,13 @@ apiClient.interceptors.request.use(async config => {
 });
 
 function extractApiError(error: unknown): string {
-  const axiosError = error as AxiosError<ApiEnvelope<unknown>>;
-  return axiosError.response?.data?.message || axiosError.message || 'Đã có lỗi xảy ra';
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.message || error.message || 'Đã có lỗi xảy ra';
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Đã có lỗi xảy ra';
 }
 
 export async function apiGet<T>(url: string, params?: Record<string, unknown>): Promise<T> {

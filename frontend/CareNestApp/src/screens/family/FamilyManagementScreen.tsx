@@ -997,12 +997,9 @@ export default function FamilyManagementScreen() {
         <View style={styles.topBarLeft}>
           <TouchableOpacity style={styles.profileBtn}>
             <Image
-              source={{
-                uri:
-                  user?.avatarUrl ||
-                  'https://ui-avatars.com/api/?name=User&background=1a73e8&color=fff',
-              }}
+              source={require('../../assets/branding/carenest-logo-house.png')}
               style={styles.smallAvatar}
+              resizeMode="contain"
             />
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>{hasFamily ? familyName : 'Gia đình'}</Text>
@@ -1034,13 +1031,10 @@ const styles = StyleSheet.create({
   },
   topBarTitle: { fontSize: 18, fontWeight: '800', color: '#0369a1' },
   topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  smallAvatar: { width: 36, height: 36, borderRadius: 18 },
+  smallAvatar: { width: 32, height: 32 },
   profileBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: '#f1f5f9',
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },

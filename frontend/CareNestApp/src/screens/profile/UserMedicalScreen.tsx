@@ -8,8 +8,10 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,8 +22,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useFamily } from '../../context/FamilyContext';
 import { getCurrentUserProfile } from '../../api/auth';
 import { getFamilyProfile, type FamilyRole, type ProfileDetails, updateFamilyMemberRole } from '../../api/family';
-import { formatBloodType, formatGender } from '../../utils/healthOptions';
+import { formatBloodType, formatGender, BLOOD_TYPE_OPTIONS } from '../../utils/healthOptions';
 import Emergency from './Emergency';
+import SelectField from '../../components/common/SelectField';
+import { updateProfile } from '../../api/family';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TAB_WIDTH = (SCREEN_WIDTH - 40) / 3;
@@ -112,11 +116,25 @@ export default function UserMedicalScreen() {
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [isRoleDropdownVisible, setIsRoleDropdownVisible] = useState(false);
 
+  // Edit states
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editHeight, setEditHeight] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editBloodType, setEditBloodType] = useState('');
+  const [editMedicalHistory, setEditMedicalHistory] = useState('');
+  const [editAllergy, setEditAllergy] = useState('');
+
   const loadProfile = useCallback(async () => {
     try {
       if (memberId) {
         const response = await getFamilyProfile(Number(memberId));
         setProfile(response);
+        setEditHeight(String(response.height || ''));
+        setEditWeight(String(response.weight || ''));
+        setEditBloodType(response.bloodType || 'O_POSITIVE');
+        setEditMedicalHistory(response.medicalHistory || '');
+        setEditAllergy(response.allergy || '');
         return;
       }
 
@@ -133,6 +151,11 @@ export default function UserMedicalScreen() {
         allergy: response.allergy,
         emergencyContactPhone: response.emergencyContactPhone,
       });
+      setEditHeight(String(response.height || ''));
+      setEditWeight(String(response.weight || ''));
+      setEditBloodType(response.bloodType || 'O_POSITIVE');
+      setEditMedicalHistory(response.medicalHistory || '');
+      setEditAllergy(response.allergy || '');
     } catch {
       setProfile(null);
     }
@@ -195,13 +218,13 @@ export default function UserMedicalScreen() {
     return 'Thành viên';
   }, [memberId, targetMember?.role]);
   const bmi = useMemo(() => {
-    const height = Number(profile?.height || 0);
-    const weight = Number(profile?.weight || 0);
+    const height = isEditing ? Number(editHeight || 0) : Number(profile?.height || 0);
+    const weight = isEditing ? Number(editWeight || 0) : Number(profile?.weight || 0);
     if (height <= 30 || weight <= 2) {
       return '--';
     }
     return (weight / ((height / 100) ** 2)).toFixed(1);
-  }, [profile?.height, profile?.weight]);
+  }, [isEditing, editHeight, editWeight, profile?.height, profile?.weight]);
 
   const handleTabPress = (index: number) => {
     setActiveTab(index);
@@ -258,6 +281,53 @@ export default function UserMedicalScreen() {
     }
 
     void handleUpdateMemberRole(role);
+  };
+
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      // Revert changes if cancelling? Or just toggle.
+      // Usually cancelling reverts, but the user said "khi sửa thì có thể nhập... sau khi sửa xong thì sẽ lưu"
+      // So I'll add a separate Save button or use the same toggle.
+      // I'll implement a Save logic.
+      if (isSaving) return;
+      handleSave();
+    } else {
+      setIsEditing(true);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!viewedProfileId || !profile) return;
+
+    try {
+      setIsSaving(true);
+      
+      // Đảm bảo không gửi giá trị 0 nếu người dùng xóa trắng (tránh lỗi validation của máy chủ)
+      const heightVal = editHeight ? Number(editHeight) : (profile.height || null);
+      const weightVal = editWeight ? Number(editWeight) : (profile.weight || null);
+
+      await updateProfile(viewedProfileId, {
+        // Gửi các trường chỉnh sửa
+        height: heightVal,
+        weight: weightVal,
+        bloodType: editBloodType,
+        medicalHistory: editMedicalHistory,
+        allergy: editAllergy,
+        // Gửi thêm các trường bắt buộc khác để tránh lỗi JPA transaction
+        fullName: profile.fullName,
+        birthday: profile.birthday,
+        gender: profile.gender,
+        emergencyContactPhone: profile.emergencyContactPhone,
+      });
+
+      await loadProfile();
+      setIsEditing(false);
+      Alert.alert('Thành công', 'Thông tin y tế đã được cập nhật.');
+    } catch (error) {
+      Alert.alert('Lỗi', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderScheduleTab = () => (
@@ -339,41 +409,103 @@ export default function UserMedicalScreen() {
         <View style={styles.grid}>
           <HealthCard
             title="NHÓM MÁU"
-            value={formatBloodType(profile?.bloodType)}
             icon="bloodtype"
             bgColor="#FFEBEB"
             textColor="#B91C1C"
-          />
+          >
+            {isEditing ? (
+              <SelectField
+                label=""
+                value={editBloodType}
+                displayValue={formatBloodType(editBloodType)}
+                options={BLOOD_TYPE_OPTIONS}
+                onChange={setEditBloodType}
+                icon="bloodtype"
+                containerStyle={styles.cardSelect}
+                textStyle={{ color: '#B91C1C' }}
+              />
+            ) : (
+              <Text style={[styles.cardValue, { color: '#B91C1C' }]}>
+                {formatBloodType(profile?.bloodType)}
+              </Text>
+            )}
+          </HealthCard>
+
           <HealthCard
             title="DỊ ỨNG"
-            value={profile?.allergy || 'Không có'}
             icon="warning"
             bgColor="#FFF4E6"
             textColor="#9A3412"
           >
-            <View style={styles.pillContainer}>
-              {allergies.map((tag, idx) => (
-                <View key={`${tag}-${idx}`} style={styles.pill}>
-                  <Text style={styles.pillText}>{tag.toUpperCase()}</Text>
-                </View>
-              ))}
-            </View>
+            {isEditing ? (
+              <TextInput
+                style={styles.cardInput}
+                value={editAllergy}
+                onChangeText={setEditAllergy}
+                placeholder="Nhập..."
+                placeholderTextColor="rgba(154, 52, 18, 0.4)"
+                multiline
+              />
+            ) : (
+              <View style={styles.pillContainer}>
+                {allergies.map((tag, idx) => (
+                  <View key={`${tag}-${idx}`} style={styles.pill}>
+                    <Text style={styles.pillText}>{tag.toUpperCase()}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </HealthCard>
         </View>
 
         <View style={styles.statsRow}>
-          <StatItem label="CHIỀU CAO" value={profile?.height ?? '--'} unit="cm" />
-          <StatItem label="CÂN NẶNG" value={profile?.weight ?? '--'} unit="kg" />
+          {isEditing ? (
+            <>
+              <View style={styles.statEditItem}>
+                <Text style={styles.statLabel}>CHIỀU CAO (cm)</Text>
+                <TextInput
+                  style={styles.statInput}
+                  value={editHeight}
+                  onChangeText={setEditHeight}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.statEditItem}>
+                <Text style={styles.statLabel}>CÂN NẶNG (kg)</Text>
+                <TextInput
+                  style={styles.statInput}
+                  value={editWeight}
+                  onChangeText={setEditWeight}
+                  keyboardType="numeric"
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <StatItem label="CHIỀU CAO" value={profile?.height ?? '--'} unit="cm" />
+              <StatItem label="CÂN NẶNG" value={profile?.weight ?? '--'} unit="kg" />
+            </>
+          )}
           <StatItem label="BMI" value={bmi} isBmi />
         </View>
 
         <View style={styles.sectionHeader}>
-          <Icon name="history_edu" size={20} color="#666" />
+          <Icon name="assignment" size={20} color="#666" />
           <Text style={styles.sectionTitle}>TIỀN SỬ BỆNH LÝ</Text>
         </View>
 
         <View style={styles.historyList}>
-          {profile?.medicalHistory ? (
+          {isEditing ? (
+            <View style={styles.historyItemLast}>
+              <TextInput
+                style={styles.historyEditInput}
+                value={editMedicalHistory}
+                onChangeText={setEditMedicalHistory}
+                placeholder="Nhập tiền sử bệnh lý..."
+                multiline
+              />
+            </View>
+          ) : profile?.medicalHistory ? (
             <View style={styles.historyItemLast}>
               <Text style={styles.historyName}>Ghi chú bệnh lý</Text>
               <Text style={styles.historyDesc}>{profile.medicalHistory}</Text>
@@ -400,7 +532,21 @@ export default function UserMedicalScreen() {
           <Icon name="arrow_back" size={24} color="#334155" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>CareNest</Text>
-        <View style={styles.editBtn} />
+        {(isOwner || isSelfProfile) ? (
+          <TouchableOpacity 
+            style={[styles.editHeaderBtn, isSaving && styles.disabledBtn]} 
+            onPress={handleToggleEdit}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#3B82F6" />
+            ) : (
+              <Text style={styles.editHeaderText}>{isEditing ? 'Lưu' : 'Sửa'}</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.editBtn} />
+        )}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -706,4 +852,78 @@ const styles = StyleSheet.create({
   historyItemLast: { padding: 16 },
   historyName: { fontSize: 16, fontWeight: '700', color: '#1E293B', marginBottom: 4 },
   historyDesc: { fontSize: 14, color: '#64748B', lineHeight: 20 },
+  editHeaderBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    minWidth: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editHeaderText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#3B82F6',
+    fontFamily: 'Inter',
+  },
+  editCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  editLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    marginBottom: 8,
+    fontFamily: 'Inter',
+  },
+  editInput: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    padding: 0,
+    minHeight: 40,
+    textAlignVertical: 'top',
+  },
+  statEditItem: {
+    flex: 1,
+  },
+  statInput: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#3B82F6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#3B82F6',
+    padding: 0,
+    minWidth: 60,
+  },
+  historyEditInput: {
+    fontSize: 14,
+    color: '#1E293B',
+    lineHeight: 20,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  disabledBtn: {
+    opacity: 0.5,
+  },
+  cardSelect: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    paddingHorizontal: 0,
+    marginTop: -10,
+  },
+  cardInput: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#9A3412',
+    textAlign: 'center',
+    padding: 0,
+    minHeight: 60,
+  },
 });
