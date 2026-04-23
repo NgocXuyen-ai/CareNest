@@ -14,13 +14,19 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import Input from '../../components/common/Input';
 import Icon from '../../components/common/Icon';
-import { forgotPassword as forgotPasswordRequest } from '../../api/auth';
+import { forgotPassword as forgotPasswordRequest, resetPassword } from '../../api/auth';
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [sent, setSent] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleForgotPassword() {
@@ -30,6 +36,26 @@ export default function ForgotPasswordScreen() {
       setSent(true);
     } catch (error) {
       Alert.alert('Không thể gửi email', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert('Lỗi', 'Mật khẩu phải từ 6 ký tự trở lên');
+      return;
+    }
+    try {
+      setLoading(true);
+      await resetPassword({ email, otp, newPassword, confirmPassword });
+      setResetSuccess(true);
+    } catch (error) {
+      Alert.alert('Không thể đổi mật khẩu', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
     } finally {
       setLoading(false);
     }
@@ -47,19 +73,70 @@ export default function ForgotPasswordScreen() {
           <Icon name="arrow_back" size={24} color={colors.onSurface} />
         </TouchableOpacity>
 
-        {sent ? (
+        {resetSuccess ? (
           <View style={styles.successSection}>
             <View style={styles.successIcon}>
               <Icon name="check_circle" size={48} color={colors.primary} />
             </View>
-            <Text style={styles.title}>Email đã được gửi!</Text>
+            <Text style={styles.title}>Đổi mật khẩu thành công!</Text>
             <Text style={styles.subtitle}>
-              Kiểm tra hộp thư {email} và làm theo hướng dẫn để đặt lại mật khẩu.
+              Mật khẩu của bạn đã được cập nhật. Bạn có thể đăng nhập bằng mật khẩu mới.
             </Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
               <Text style={styles.primaryBtnText}>Quay lại đăng nhập</Text>
             </TouchableOpacity>
           </View>
+        ) : sent ? (
+          <>
+            <View style={styles.header}>
+              <View style={styles.iconWrap}>
+                <Icon name="password" size={32} color={colors.primary} />
+              </View>
+              <Text style={styles.title}>Đặt lại mật khẩu</Text>
+              <Text style={styles.subtitle}>
+                Nhập mã OTP gồm 6 chữ số đã được gửi đến {email} và mật khẩu mới của bạn.
+              </Text>
+            </View>
+
+            <View style={styles.card}>
+              <Input
+                label="Mã OTP"
+                value={otp}
+                onChangeText={setOtp}
+                placeholder="Nhập 6 số"
+                keyboardType="numeric"
+                maxLength={6}
+                leftIcon={<Icon name="lock" size={20} color={colors.outline} />}
+              />
+              <Input
+                label="Mật khẩu mới"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="Ít nhất 6 ký tự"
+                secureTextEntry
+                leftIcon={<Icon name="lock" size={20} color={colors.outline} />}
+              />
+              <Input
+                label="Xác nhận mật khẩu"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Nhập lại mật khẩu"
+                secureTextEntry
+                leftIcon={<Icon name="lock" size={20} color={colors.outline} />}
+              />
+              <TouchableOpacity
+                style={[styles.primaryBtn, (!otp || !newPassword || !confirmPassword || loading) && styles.disabled]}
+                disabled={!otp || !newPassword || !confirmPassword || loading}
+                onPress={() => void handleResetPassword()}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryBtnText}>{loading ? 'Đang xử lý...' : 'Xác nhận'}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.backLink} onPress={() => setSent(false)}>
+              <Text style={styles.backLinkText}>Gửi lại email</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <>
             <View style={styles.header}>
@@ -88,7 +165,7 @@ export default function ForgotPasswordScreen() {
                 onPress={() => void handleForgotPassword()}
                 activeOpacity={0.85}
               >
-                <Text style={styles.primaryBtnText}>{loading ? 'Đang gửi...' : 'Gửi email khôi phục'}</Text>
+                <Text style={styles.primaryBtnText}>{loading ? 'Đang gửi...' : 'Gửi mã khôi phục'}</Text>
               </TouchableOpacity>
             </View>
 

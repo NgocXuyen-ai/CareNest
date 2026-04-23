@@ -87,6 +87,17 @@ export async function forgotPassword(email: string): Promise<void> {
   await apiPost('/auth/forgot-password', { email });
 }
 
+export interface ResetPasswordPayload {
+  email: string;
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export async function resetPassword(payload: ResetPasswordPayload): Promise<void> {
+  await apiPost('/auth/reset-password', payload);
+}
+
 export async function getCurrentUserProfile(): Promise<CurrentUserProfile> {
   return apiGetCached<CurrentUserProfile>('/users/me/profile', undefined, { ttlMs: 20000 });
 }

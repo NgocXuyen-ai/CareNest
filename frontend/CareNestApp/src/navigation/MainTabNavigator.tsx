@@ -58,7 +58,7 @@ export default function MainTabNavigator() {
       prefetchTasks.push(getVaccinationTracker(activeProfileId));
     }
 
-    void Promise.allSettled(prefetchTasks);
+    prefetchTasks.forEach(task => task.catch(() => {}));
   }, [activeProfileId, members, notificationProfileId, selectedProfileId]);
 
   return (

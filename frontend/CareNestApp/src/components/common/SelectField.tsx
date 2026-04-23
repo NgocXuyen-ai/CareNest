@@ -25,6 +25,8 @@ interface SelectFieldProps {
   options: readonly Option[];
   onChange: (nextValue: string) => void;
   disabled?: boolean;
+  containerStyle?: any;
+  textStyle?: any;
 }
 
 export default function SelectField({
@@ -35,6 +37,8 @@ export default function SelectField({
   options,
   onChange,
   disabled = false,
+  containerStyle,
+  textStyle,
 }: SelectFieldProps) {
   const [visible, setVisible] = useState(false);
 
@@ -49,7 +53,7 @@ export default function SelectField({
   return (
     <>
       <TouchableOpacity
-        style={[styles.inputContainer, disabled && styles.inputContainerDisabled]}
+        style={[styles.inputContainer, disabled && styles.inputContainerDisabled, containerStyle]}
         onPress={handleOpenSelect}
         activeOpacity={0.85}
       >
@@ -58,7 +62,7 @@ export default function SelectField({
         </View>
         <View style={styles.inputContent}>
           <Text style={styles.inputLabel}>{label}</Text>
-          <Text style={styles.inputValue}>{displayValue}</Text>
+          <Text style={[styles.inputValue, textStyle]}>{displayValue}</Text>
         </View>
         <Icon name="expand_more" size={24} color={disabled ? '#CBD5E1' : '#94A3B8'} />
       </TouchableOpacity>

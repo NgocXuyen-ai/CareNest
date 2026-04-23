@@ -5,6 +5,7 @@ import type { AuthStackParamList } from './navigationTypes';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import PolicyScreen from '../screens/profile/PolicyScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -14,6 +15,7 @@ export default function AuthStack() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="Policy" component={PolicyScreen} />
     </Stack.Navigator>
   );
 }
