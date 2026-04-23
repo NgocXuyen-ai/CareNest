@@ -131,6 +131,17 @@ function formatMemberRole(role?: string) {
   }
 }
 
+function calculateAgeFromDate(date: Date | null): string {
+  if (!date) return '';
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const m = today.getMonth() - date.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < date.getDate())) {
+    age--;
+  }
+  return String(age);
+}
+
 export default function UserProfileSettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -201,11 +212,6 @@ export default function UserProfileSettingsScreen() {
   };
 
   const handleChoosePhoto = () => {
-    if (!isEditing) {
-      Alert.alert('Chế độ xem', 'Bấm Sửa để bật chỉnh sửa thông tin tài khoản.');
-      return;
-    }
-
     Alert.alert(
       'Đổi ảnh đại diện',
       'Chọn cách thêm ảnh',
@@ -252,7 +258,8 @@ export default function UserProfileSettingsScreen() {
         asset.type || 'image/jpeg',
       );
       setAvatarUri(updated.avatarUrl || null);
-      await refreshUser();
+      await Promise.all([refreshUser(), refreshFamily()]);
+      Alert.alert('Thành công', 'Ảnh đại diện đã được cập nhật và đồng bộ.');
     } catch (error) {
       Alert.alert('Lỗi', error instanceof Error ? error.message : 'Không thể tải ảnh lên');
     } finally {
@@ -348,7 +355,7 @@ export default function UserProfileSettingsScreen() {
               </View>
             ) : null}
             <TouchableOpacity
-              style={[styles.cameraBtn, (!isEditing || isUploadingAvatar) && styles.cameraBtnDisabled]}
+              style={[styles.cameraBtn, isUploadingAvatar && styles.cameraBtnDisabled]}
               onPress={handleChoosePhoto}
               disabled={isUploadingAvatar}
             >
@@ -363,7 +370,7 @@ export default function UserProfileSettingsScreen() {
           <TouchableOpacity
             style={[styles.medicalRecordBtn, shadows.sm]}
             onPressIn={() => {
-              void getCurrentUserProfile();
+              void getCurrentUserProfile().catch(() => {});
             }}
             onPress={() => navigation.navigate('UserMedical', { memberId: user?.profileId })}
           >
@@ -407,7 +414,7 @@ export default function UserProfileSettingsScreen() {
               editable={isEditing}
             />
             <InputField
-              icon="contact_phone"
+              icon="phone"
               label="Số điện thoại khẩn cấp"
               value={emergencyContactPhone}
               onChangeText={setEmergencyContactPhone}
@@ -443,6 +450,13 @@ export default function UserProfileSettingsScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            <InputField
+              icon="cake"
+              label="Tuổi"
+              value={calculateAgeFromDate(birthdayDate)}
+              onChangeText={() => {}}
+              editable={false}
+            />
             <SelectField
               icon="wc"
               label="Giới tính"
@@ -505,7 +519,7 @@ export default function UserProfileSettingsScreen() {
               <Text style={styles.rowValueText}>Tiếng Việt</Text>
               <Icon name="chevron_right" size={20} color="#CBD5E1" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsRow}>
+            <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Policy')}>
               <View style={[styles.rowIconWrap, { backgroundColor: '#F0FDFA' }]}>
                 <Icon name="security" size={20} color="#0D9488" />
               </View>

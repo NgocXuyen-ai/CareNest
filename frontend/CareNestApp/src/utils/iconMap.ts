@@ -99,6 +99,9 @@ const iconMap: Record<string, string> = {
   monitor_weight: 'scale-bathroom',
   show_chart: 'chart-line',
   notification_important: 'bell-alert',
+  password: 'lock-reset',
+  lock_outline: 'lock-outline',
+  pin: 'numeric',
 };
 
 export function getIconName(materialSymbolName: string): string {

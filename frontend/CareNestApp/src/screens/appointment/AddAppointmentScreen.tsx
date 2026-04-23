@@ -195,8 +195,24 @@ export default function AddAppointmentScreen() {
         </Text>
       </ScrollView>
 
-      {showDatePicker ? <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} /> : null}
-      {showTimePicker ? <DateTimePicker value={date} mode="time" display="default" onChange={onTimeChange} /> : null}
+      {showDatePicker ? (
+        <DateTimePicker 
+          value={date} 
+          mode="date" 
+          display="default" 
+          onValueChange={onDateChange} 
+          onDismiss={() => setShowDatePicker(false)} 
+        />
+      ) : null}
+      {showTimePicker ? (
+        <DateTimePicker 
+          value={date} 
+          mode="time" 
+          display="default" 
+          onValueChange={onTimeChange} 
+          onDismiss={() => setShowTimePicker(false)} 
+        />
+      ) : null}
     </View>
   );
 }

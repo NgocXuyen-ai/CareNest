@@ -124,7 +124,7 @@ export default function RegisterScreen() {
               Tôi đồng ý với{' '}
               <Text style={styles.termsLink}>Điều khoản dịch vụ</Text>
               {' '}và{' '}
-              <Text style={styles.termsLink}>Chính sách bảo mật</Text>
+              <Text style={styles.termsLink} onPress={() => navigation.navigate('Policy')}>Chính sách bảo mật</Text>
             </Text>
           </TouchableOpacity>
 

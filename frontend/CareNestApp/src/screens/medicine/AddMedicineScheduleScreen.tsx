@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -9,7 +9,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Pressable,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -22,12 +24,15 @@ import { createMedicineSchedule, getScheduleFormData, type MedicineScheduleFormD
 import { formatLocalDate } from '../../utils/dateTime';
 
 export default function AddMedicineScheduleScreen() {
+  // 1. Navigation and Context Hooks
   const navigation = useNavigation();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const { selectedProfileId } = useFamily();
   const { user } = useAuth();
   const memberId = route.params?.memberId as string | undefined;
+
+  // 2. State Hooks
   const [formData, setFormData] = useState<MedicineScheduleFormData | null>(null);
   const [selectedMember, setSelectedMember] = useState<number | null>(
     memberId
@@ -40,6 +45,13 @@ export default function AddMedicineScheduleScreen() {
   const [startDate, setStartDate] = useState(formatLocalDate(new Date()));
   const [endDate, setEndDate] = useState(formatLocalDate(new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)));
   const [notes, setNotes] = useState('');
+  const [showPicker, setShowPicker] = useState<'start' | 'end' | null>(null);
+
+  // 3. Memoized and Effect Hooks
+  const selectedMedicine = useMemo(
+    () => formData?.medicines.find(item => item.medicineId === selectedMedicineId) || null,
+    [formData, selectedMedicineId],
+  );
 
   useEffect(() => {
     void getScheduleFormData()
@@ -55,12 +67,21 @@ export default function AddMedicineScheduleScreen() {
       .catch(() => setFormData(null));
   }, [selectedMember]);
 
-  const selectedMedicine = useMemo(
-    () => formData?.medicines.find(item => item.medicineId === selectedMedicineId) || null,
-    [formData, selectedMedicineId],
-  );
+  // 4. Action Handlers
+  const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    const currentPicker = showPicker;
+    setShowPicker(null);
+    
+    if (selectedDate && currentPicker) {
+      if (currentPicker === 'start') {
+        setStartDate(formatLocalDate(selectedDate));
+      } else {
+        setEndDate(formatLocalDate(selectedDate));
+      }
+    }
+  };
 
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     if (!selectedMember || !selectedMedicine) {
       Alert.alert('Thiếu dữ liệu', 'Vui lòng chọn hồ sơ và thuốc trước khi lưu lịch.');
       return;
@@ -83,7 +104,7 @@ export default function AddMedicineScheduleScreen() {
     } catch (error) {
       Alert.alert('Không thể tạo lịch thuốc', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
     }
-  }
+  };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F8FAFC' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -170,12 +191,34 @@ export default function AddMedicineScheduleScreen() {
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>NGÀY BẮT ĐẦU</Text>
-              <TextInput style={styles.textInput} value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" />
+              <Pressable onPress={() => setShowPicker('start')}>
+                <View pointerEvents="none">
+                  <TextInput style={styles.textInput} value={startDate} editable={false} placeholder="YYYY-MM-DD" />
+                </View>
+              </Pressable>
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>NGÀY KẾT THÚC</Text>
-              <TextInput style={styles.textInput} value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" />
+              <Pressable onPress={() => setShowPicker('end')}>
+                <View pointerEvents="none">
+                  <TextInput style={styles.textInput} value={endDate} editable={false} placeholder="YYYY-MM-DD" />
+                </View>
+              </Pressable>
             </View>
+
+            {showPicker && (
+              <DateTimePicker
+                value={
+                  showPicker === 'start' 
+                    ? (startDate ? new Date(startDate) : new Date())
+                    : (endDate ? new Date(endDate) : new Date())
+                }
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onDateChange}
+                minimumDate={new Date()}
+              />
+            )}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>GHI CHÚ</Text>
               <TextInput

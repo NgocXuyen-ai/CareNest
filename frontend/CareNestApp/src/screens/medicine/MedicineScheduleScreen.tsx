@@ -23,9 +23,9 @@ import { formatLocalDate } from '../../utils/dateTime';
 type Nav = NativeStackNavigationProp<any, 'MedicineSchedule'>;
 
 const TIME_GROUPS = [
-  { key: 'MORNING', label: 'Buoi sang', icon: 'wb_sunny', bg: '#FFF9C4', iconColor: '#F9A825' },
-  { key: 'NOON', label: 'Buoi trua', icon: 'partly_cloudy_day', bg: '#E3F2FD', iconColor: '#1976D2' },
-  { key: 'EVENING', label: 'Buoi toi', icon: 'bedtime', bg: '#EDE7F6', iconColor: '#7B1FA2' },
+  { key: 'MORNING', label: 'Buổi sáng', icon: 'wb_sunny', bg: '#FFF9C4', iconColor: '#F9A825' },
+  { key: 'NOON', label: 'Buổi trưa', icon: 'partly_cloudy_day', bg: '#E3F2FD', iconColor: '#1976D2' },
+  { key: 'EVENING', label: 'Buổi tối', icon: 'bedtime', bg: '#EDE7F6', iconColor: '#7B1FA2' },
 ];
 
 export default function MedicineScheduleScreen() {
@@ -86,7 +86,7 @@ export default function MedicineScheduleScreen() {
 
   return (
     <View style={styles.root}>
-      <TopAppBar variant="detail" title="Lich uong thuoc" />
+      <TopAppBar variant="detail" title="Lịch uống thuốc" />
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
@@ -96,9 +96,9 @@ export default function MedicineScheduleScreen() {
       >
         <View style={styles.progressCard}>
           <View style={styles.progressInfo}>
-            <Text style={styles.progressTitle}>{schedule?.profileName || 'Hom nay'}</Text>
+            <Text style={styles.progressTitle}>{schedule?.profileName || 'Hôm nay'}</Text>
             <Text style={styles.progressSub}>
-              {takenCount}/{totalCount} lan uong da hoan thanh
+              {takenCount}/{totalCount} lần uống đã hoàn thành
             </Text>
           </View>
           <View style={styles.progressCircle}>
@@ -152,7 +152,7 @@ export default function MedicineScheduleScreen() {
 
         {scheduleItems.length === 0 ? (
           <View style={[styles.card, shadows.sm, { padding: 20 }]}>
-            <Text style={styles.schedDosage}>Chua co lich thuoc nao cho ho so dang chon.</Text>
+            <Text style={styles.schedDosage}>Chưa có lịch thuốc nào cho hồ sơ đang chọn.</Text>
           </View>
         ) : null}
       </ScrollView>
